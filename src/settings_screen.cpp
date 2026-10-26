@@ -8,7 +8,19 @@
 // A toggles or opens, X puts a setting back, B goes back, LB and RB change
 // section.
 
+#if defined(_WIN32)
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
+
 #include <algorithm>
+#include <array>
+#include <cstdlib>
 #include <cmath>
 #include <cstdio>
 #include <filesystem>
@@ -233,20 +245,36 @@ std::vector<Section> GameSections(App& app, int g) {
   s.push_back({"Display", [&st](Rows& r) {
     r.Choice("Window mode", "Fullscreen fills your screen. Windowed opens a window you can move and resize.",
              "fullscreen", "true", {{"true", "Fullscreen"}, {"false", "Windowed"}});
-    // The windowed size: window_width and window_height together (logical pixels, so Windows display scaling
-    // still applies). Not the SDK's "resolution" preset, which also changes the game's own video mode
-    // (the guest stays at 1280 x 720).
+    // The windowed size: window_width and window_height together. The SDK keeps them in logical pixels (Windows
+    // display scaling applies), so the sizes offered are real pixels converted with the display scale, and only
+    // those that fit the screen, as in King Kong Recompiled. The game's upscaler mode then works from that size
+    // (render_quality.cpp). Not the SDK's "resolution" preset, which also changes the game's own video mode (the
+    // guest stays at 1280 x 720).
     {
-      static const int sizes[][2] = {{0, 0}, {1280, 720}, {1600, 900}, {1920, 1080}, {2560, 1440}, {3840, 2160}};
-      static const std::vector<std::string> names = {"Automatic", "1280 \xC3\x97 720", "1600 \xC3\x97 900",
-                                                     "1920 \xC3\x97 1080", "2560 \xC3\x97 1440", "3840 \xC3\x97 2160"};
-      const int w = st.GetInt("window_width", 0), h = st.GetInt("window_height", 0);
+#if defined(_WIN32)
+      const double scale = GetDpiForSystem() / 96.0;
+#else
+      const double scale = 1.0;
+#endif
+      SDL_DisplayMode dm{};
+      const int screen_w = SDL_GetDesktopDisplayMode(0, &dm) == 0 ? dm.w : 1 << 16;
+      const int screen_h = SDL_GetDesktopDisplayMode(0, &dm) == 0 ? dm.h : 1 << 16;
+      static const int kSizes[][2] = {{0, 0}, {1280, 720}, {1600, 900}, {1920, 1080}, {2560, 1440}, {3200, 1800},
+                                      {3840, 2160}};
+      const int w = int(st.GetInt("window_width", 0) * scale + 0.5), h = int(st.GetInt("window_height", 0) * scale + 0.5);
+      std::vector<std::array<int, 2>> sizes;
+      std::vector<std::string> names;
       int cur = -1;
-      for (int i = 0; i < int(std::size(sizes)); ++i)
-        if (sizes[i][0] == w && sizes[i][1] == h) cur = i;
-      if (r.ChoiceIndex("Window size", "The size of the window when the game is windowed.", cur, names, 0)) {
-        st.SetInt("window_width", sizes[cur][0]);
-        st.SetInt("window_height", sizes[cur][1]);
+      for (const auto& sz : kSizes) {
+        if (sz[0] && (sz[0] >= screen_w || sz[1] >= screen_h)) continue;  // must fit with its frame
+        if (std::abs(sz[0] - w) <= 2 && std::abs(sz[1] - h) <= 2) cur = int(sizes.size());
+        sizes.push_back({sz[0], sz[1]});
+        names.push_back(sz[0] ? std::to_string(sz[0]) + " \xC3\x97 " + std::to_string(sz[1]) : "Automatic");
+      }
+      if (r.ChoiceIndex("Window size", "The size of the window when the game is windowed, in pixels. The upscaler "
+                        "works from this size. Fullscreen always uses the whole screen.", cur, names, 0)) {
+        st.SetInt("window_width", int(sizes[cur][0] / scale + 0.5));
+        st.SetInt("window_height", int(sizes[cur][1] / scale + 0.5));
         st.Save();
       }
     }
@@ -308,6 +336,9 @@ std::vector<Section> GameSections(App& app, int g) {
                {{"1", "Original (720p)"}, {"2", "2x (1440p)"}, {"3", "3x (4K)"}, {"4", "4x"}, {"5", "5x"},
                 {"6", "6x"}});
     }
+    if (std::string(Games()[g].id) == "trials_hd")  // games/trials_hd/src/dof_option.cpp
+      r.Toggle("Depth of field", "Blurs the background behind the track, as on the Xbox 360. Off keeps the whole "
+               "picture sharp.", "trials_depth_of_field", true);
     r.Choice("Anti aliasing", "Smooths jagged edges.", "swap_post_effect", "fxaa",
              {{"none", "Off"}, {"fxaa", "FXAA"}, {"fxaa_extreme", "FXAA strong"}});
     r.Choice("Texture filtering", "Keeps ground and wall textures sharp when seen at an angle.",

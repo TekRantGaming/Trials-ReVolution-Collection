@@ -7,6 +7,7 @@
 //   Trials HD         https://www.steamgriddb.com/game/5279176
 //   Trials Evolution  https://www.steamgriddb.com/game/5499128 (the Gold Edition, 2260, has more)
 //   Trials Fusion     https://www.steamgriddb.com/game/2877
+//   Trials Evolution: Gold Edition (Home's Steam tile, gold_screen.cpp)  https://www.steamgriddb.com/game/2260
 //
 // Other images on those pages (for swapping):
 //   Trials HD grids         25d2570f7caac8015fc687cd54df062d.png, 548a9b2795d2a7ba2cf435f1fb6045a6.png
@@ -19,6 +20,7 @@
 #include <trg/download.h>
 
 #include "art.h"
+#include "games.h"
 
 namespace trials {
 namespace {
@@ -37,6 +39,8 @@ const ArtSet kArt[] = {
      "logo/d033187b6f6d8fd7441666c244823b91.png"},
     {2877, "grid/67c68199f158340828fc50c3f66c99c5.png", "hero/67249303d47d37fe078e1439f958b92b.png",
      "logo/65a579da11fa712149bca347ecfcb208.png"},
+    {kGoldEditionSteamGridDb, "grid/4afab2bc5757a92efb5266c7ea0365d1.png", "hero/52b243733f53d6184e349f187c32c961.png",
+     "logo/178fde6398864e33aaefae5d2d855f20.png"},
 };
 
 }  // namespace

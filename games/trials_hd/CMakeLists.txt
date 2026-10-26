@@ -21,6 +21,7 @@ set(TRIALSHD_SOURCES
     src/input_options.cpp
     src/frame_stats.cpp
     src/fps_unlock.cpp
+    src/dof_option.cpp
     ../shared/src/achievement_toast.cpp
     ../shared/src/return_to_launcher.cpp
     ../shared/src/render_quality.cpp

@@ -24,6 +24,7 @@
 #include <cstring>
 
 #include <rex/cvar.h>
+#include <rex/logging.h>
 
 REXCVAR_DECLARE(bool, trials_from_launcher);  // return_to_launcher.cpp
 
@@ -42,9 +43,15 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     return TRUE;
   }
   if (msg == WM_MOUSEMOVE) {
+    // The mouse is used again after a real move (not a pixel or two of sensor jitter): Windows shows the cursor at
+    // the next WM_SETCURSOR.
+    static int travel = 0;
     const POINT p{GET_X_LPARAM(lp), GET_Y_LPARAM(lp)};
-    if (std::abs(p.x - g_last_mouse.x) + std::abs(p.y - g_last_mouse.y) > 2 && g_last_mouse.x > -100000)
-      g_hidden = false;  // the mouse is used again: Windows shows the cursor at the next WM_SETCURSOR
+    if (g_last_mouse.x > -100000 && g_hidden) {
+      travel += std::abs(p.x - g_last_mouse.x) + std::abs(p.y - g_last_mouse.y);
+      if (travel > 24) g_hidden = false;
+    }
+    if (!g_hidden) travel = 0;
     g_last_mouse = p;
   }
   return CallWindowProcW(g_old_proc, hwnd, msg, wp, lp);
@@ -64,6 +71,15 @@ void Attach() {
   if (!hwnd) return;
   g_old_proc = reinterpret_cast<WNDPROC>(SetWindowLongPtrW(hwnd, GWLP_WNDPROC, LONG_PTR(&WindowProc)));
   g_window = hwnd;
+#if defined(TH_DEV_TOOLS) || defined(TE_DEV_TOOLS) || defined(TF_DEV_TOOLS)
+  char cls[128] = {}, title[128] = {};
+  GetClassNameA(hwnd, cls, 128);
+  GetWindowTextA(hwnd, title, 128);
+  RECT rc{};
+  GetClientRect(hwnd, &rc);
+  REXLOG_INFO("Trials dev window: attached class {} title {} size {}x{}", cls, title,
+              rc.right, rc.bottom);
+#endif
   static const bool test_background = std::getenv("TRIALS_TEST_BACKGROUND") != nullptr;
   if (REXCVAR_GET(trials_from_launcher) && !test_background) {
     ShowWindow(hwnd, SW_SHOW);
@@ -83,6 +99,9 @@ void GameWindowTick(bool pad_used) {
   }
   if (pad_used && !g_hidden) {
     g_hidden = true;
+#if defined(TH_DEV_TOOLS) || defined(TE_DEV_TOOLS) || defined(TF_DEV_TOOLS)
+    REXLOG_INFO("Trials dev window: cursor hidden");
+#endif
     POINT p;
     HWND hwnd = g_window;
     if (GetCursorPos(&p) && WindowFromPoint(p) == hwnd)  // refresh the cursor now, if it is over the game

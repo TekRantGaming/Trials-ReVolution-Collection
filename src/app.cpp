@@ -87,6 +87,7 @@ void App::Start() {
 
   std::vector<int> ids;
   for (const GameInfo& g : Games()) ids.push_back(g.steamgriddb_id);
+  ids.push_back(kGoldEditionSteamGridDb);  // kGoldEditionArt
   art_ = std::make_unique<ArtCache>(ids, upload_);
   {
     int w = 0, h = 0;
@@ -153,6 +154,8 @@ void App::Start() {
     OpenInstall(std::atoi(v.c_str() + 8));
   } else if (v == "projects") {
     OpenProjects();
+  } else if (v == "gold") {
+    OpenGoldEdition();
   } else if (v == "settings") {
     OpenCollection();
   }
@@ -185,6 +188,7 @@ void App::OpenHome(int focus_game) {
   RefreshStates();
   if (focus_game >= 0) FocusGameOnHome(focus_game);
   if (focus_game == -2) FocusProjectsOnHome();
+  if (focus_game == -3) FocusGoldOnHome();
   view_ = View::kHome;
 }
 
@@ -220,6 +224,7 @@ void App::OpenInstall(int game) {
 }
 
 void App::OpenProjects() { view_ = View::kProjects; }
+void App::OpenGoldEdition() { view_ = View::kGold; }
 
 void App::OpenCollection() {
   collection_view_.in_rows = false;
@@ -508,6 +513,7 @@ bool App::Frame() {
     case View::kInstall: DrawInstall(*this, current_); break;
     case View::kCollection: DrawCollection(*this); break;
     case View::kProjects: DrawProjects(*this); break;
+    case View::kGold: DrawGoldEdition(*this); break;
   }
   dash::EndFrame();
   Idle();

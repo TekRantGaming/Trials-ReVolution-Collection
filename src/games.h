@@ -45,6 +45,12 @@ enum class GameState {
 };
 
 constexpr int kGameCount = 3;
+
+// Trials Evolution: Gold Edition, the Ubisoft release on Steam: Home has a tile for it (gold_screen.cpp) that
+// explains why the original games are recompiled. Its art is the art cache's entry after the games.
+constexpr int kGoldEditionArt = kGameCount;
+constexpr int kGoldEditionSteamGridDb = 2260;
+constexpr const char* kGoldEditionStoreUrl = "https://store.steampowered.com/app/220160/Trials_Evolution_Gold_Edition/";
 const std::array<GameInfo, kGameCount>& Games();
 
 // Folders (UTF-8, forward slashes). Everything lives beside the launcher, so the

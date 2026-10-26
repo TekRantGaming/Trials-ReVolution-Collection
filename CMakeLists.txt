@@ -47,6 +47,7 @@ add_executable(trials_launcher WIN32
   src/saves.cpp
   src/projects.cpp
   src/projects_screen.cpp
+  src/gold_screen.cpp
   src/settings_screen.cpp
   src/sounds.cpp
   src/steam_button.cpp

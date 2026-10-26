@@ -133,6 +133,7 @@ void ApplyDeadzone(uint8_t* base, uint32_t x_addr, int percent) {
 }  // namespace
 
 void ReturnToLauncherTick(uint32_t user, bool connected, uint16_t buttons);  // return_to_launcher.cpp
+void ReturnToLauncherKey(uint32_t user, uint16_t vk, uint16_t flags);       // return_to_launcher.cpp
 void GameWindowTick(bool pad_used);                                         // game_window.cpp
 bool PadChanged(uint32_t user, const uint8_t* state16);                     // game_window.cpp
 
@@ -233,5 +234,10 @@ REX_HOOK_RAW(sub_82124750) {
   if (!th::DevPadKeystroke(ctx, base))
 #endif
     __imp__sub_82124750(ctx, base);
-  if (ctx.r3.u32 == 0 && key && !trials::RemapKeystroke(base, key)) ctx.r3.u64 = 0x10D2;  // ERROR_EMPTY
+  const bool got = ctx.r3.u32 == 0 && key;
+  // Back and Start held in a menu return to the launcher too (the key before remapping, and its user index at +6).
+  trials::ReturnToLauncherKey(got ? base[key + 6] : 0, got ? uint16_t(base[key] << 8 | base[key + 1]) : 0,
+                              got ? uint16_t(base[key + 4] << 8 | base[key + 5]) : 0);
+  trials::GameWindowTick(got);  // a menu key from the controller hides the cursor too
+  if (got && !trials::RemapKeystroke(base, key)) ctx.r3.u64 = 0x10D2;  // ERROR_EMPTY
 }

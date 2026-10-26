@@ -83,12 +83,13 @@ class App {
   // Used by the screens.
   GameState state(int game) const { return states_[game]; }
   void RefreshStates();
-  void OpenHome(int focus_game = -1);
+  void OpenHome(int focus_game = -1);  // -2 focuses Other TRG Projects, -3 the Gold Edition tile
   void OpenHub(int game);
   void OpenGameSettings(int game, const char* section = nullptr);
   void OpenInstall(int game);
   void OpenCollection();
   void OpenProjects();
+  void OpenGoldEdition();
   static constexpr int kKingKong = 100;  // running_game() while King Kong Recompiled runs
   bool LaunchKingKong();
   Projects& projects() { return *projects_; }
@@ -138,7 +139,7 @@ class App {
   void PollSelfUpdate();
   void StartAddToSteam();
   void TickSteam();
-  enum class View { kHome, kHub, kSettings, kInstall, kCollection, kProjects };
+  enum class View { kHome, kHub, kSettings, kInstall, kCollection, kProjects, kGold };
   bool Launch(const std::string& exe, const std::string& dir, const std::vector<std::string>& args,
               const std::string& title,
               int index);
@@ -177,6 +178,8 @@ void DrawHome(App& app);
 void FocusGameOnHome(int game);
 void FocusProjectsOnHome();
 void DrawProjects(App& app);  // projects_screen.cpp
+void DrawGoldEdition(App& app);  // gold_screen.cpp
+void FocusGoldOnHome();
 void DrawHub(App& app, int game);
 void FocusHubPlay();
 void DrawGameSettings(App& app, int game);

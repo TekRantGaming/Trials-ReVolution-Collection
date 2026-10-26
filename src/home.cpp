@@ -1,7 +1,8 @@
 // The home screen, after the Xbox Series dashboard: the focused game's art
 // fills the window, its logo and status sit on the left, and the games are a
-// row of tiles along the bottom, then Other TRG Projects (a fourth "game" that
-// opens the other TekRantGaming projects), Add to Steam, Discord, Settings and Exit.
+// row of tiles along the bottom, then Trials Evolution: Gold Edition (it opens a page about the Steam release and
+// why the original games are recompiled), Other TRG Projects (it opens the other TekRantGaming projects), Add to
+// Steam, Discord, Settings and Exit.
 //
 // A opens the focused game's page (the only place with Play); LB and RB move between the
 // games. The mouse focuses a tile by pointing at it and clicking does what A does.
@@ -19,13 +20,14 @@ namespace {
 
 using namespace dash;
 
-constexpr int kProjectsTile = kGameCount, kSteamTile = kGameCount + 1, kDiscordTile = kGameCount + 2,
-              kSettingsTile = kGameCount + 3, kExitTile = kGameCount + 4, kTiles = kGameCount + 5;
+constexpr int kGoldTile = kGameCount, kProjectsTile = kGameCount + 1, kSteamTile = kGameCount + 2,
+              kDiscordTile = kGameCount + 3, kSettingsTile = kGameCount + 4, kExitTile = kGameCount + 5,
+              kTiles = kGameCount + 6;
 
 struct HomeState {
   int focus = 0;  // tile with the focus
-  int shown = 0;  // whose art and text are shown: a game, or kProjectsTile (the last focused of them)
-  float fade[kGameCount + 1] = {1.0f, 0.0f, 0.0f, 0.0f};
+  int shown = 0;  // whose art and text are shown: a game, kGoldTile or kProjectsTile (the last focused of them)
+  float fade[kProjectsTile + 1] = {1.0f};
   float grow[kTiles] = {1.0f};
 };
 HomeState home;
@@ -134,8 +136,30 @@ void DrawProjectsTile(App& app, ImVec2 a, ImVec2 b, bool focused) {
   if (focused) FocusRing(a, b, 8);
 }
 
+// Trials Evolution: Gold Edition: its card, with a Steam badge.
+void DrawGoldTile(App& app, ImVec2 a, ImVec2 b, bool focused) {
+  const Frame& f = F();
+  f.dl->AddRectFilled(ImVec2(a.x + 4 * f.s, a.y + 6 * f.s), ImVec2(b.x + 4 * f.s, b.y + 6 * f.s), Black(0.45f), 10 * f.s);
+  f.dl->AddRectFilled(a, b, IM_COL32(120, 90, 30, 255), 8 * f.s);
+  if (const Texture& grid = app.art().Get(kGoldEditionArt, ArtKind::kGrid)) {
+    f.dl->PushClipRect(a, b, true);
+    FitArt(grid, a, b, 8 * f.s);
+    f.dl->PopClipRect();
+  } else {
+    Text(f.semibold, 15, ImVec2(a.x + 10 * f.s, a.y + 10 * f.s), White(), "Trials Evolution: Gold Edition",
+         (b.x - a.x) / f.s - 20);
+  }
+  const std::string badge = "On Steam";
+  const ImVec2 t = TextSize(f.semibold, 12, badge);
+  const ImVec2 ba(a.x + 8 * f.s, b.y - 8 * f.s - t.y - 6 * f.s), bb(ba.x + t.x + 14 * f.s, b.y - 8 * f.s);
+  f.dl->AddRectFilled(ba, bb, Black(0.75f), 4 * f.s);
+  Text(f.semibold, 12, ImVec2(ba.x + 7 * f.s, ba.y + 3 * f.s), White(), badge);
+  if (focused) FocusRing(a, b, 8);
+}
+
 void Activate(App& app, int tile) {
   if (tile < kGameCount) app.OpenHub(tile);
+  else if (tile == kGoldTile) app.OpenGoldEdition();
   else if (tile == kProjectsTile) app.OpenProjects();
   else if (tile == kSteamTile) app.SteamPressed();
   else if (tile == kDiscordTile) app.OpenDiscord();
@@ -152,6 +176,8 @@ void FocusGameOnHome(int game) {
 
 void FocusProjectsOnHome() { home.focus = home.shown = kProjectsTile; }
 
+void FocusGoldOnHome() { home.focus = home.shown = kGoldTile; }
+
 void DrawHome(App& app) {
   const Frame& f = F();
   const float dt = std::min(0.1f, ImGui::GetIO().DeltaTime);
@@ -160,22 +186,23 @@ void DrawHome(App& app) {
   // Input.
   if (Pressed(Btn::kLeft)) home.focus = std::max(0, home.focus - 1);
   if (Pressed(Btn::kRight)) home.focus = std::min(kTiles - 1, home.focus + 1);
-  // LB and RB move between the four "games" (the three and Other TRG Projects).
+  // LB and RB move between the five "games" (the three, the Gold Edition and Other TRG Projects).
   if (Pressed(Btn::kLB)) home.focus = (std::min(home.focus, kProjectsTile) + kProjectsTile) % (kProjectsTile + 1);
   if (Pressed(Btn::kRB)) home.focus = home.focus >= kProjectsTile ? 0 : home.focus + 1;
   if (home.focus <= kProjectsTile) home.shown = home.focus;
   const bool on_game = home.focus <= kProjectsTile;
-  const bool on_projects = home.shown == kProjectsTile;
-  const int g = on_projects ? 0 : home.shown;
+  const bool on_projects = home.shown == kProjectsTile, on_gold = home.shown == kGoldTile;
+  const int g = home.shown < kGameCount ? home.shown : 0;
 
   // Art, crossfading to the focused game.
-  for (int i = 0; i <= kGameCount; ++i) {
+  for (int i = 0; i <= kProjectsTile; ++i) {
     const float target = i == home.shown ? 1.0f : 0.0f;
     home.fade[i] = still ? target : home.fade[i] + (target - home.fade[i]) * std::min(1.0f, dt * 7.0f);
   }
   f.dl->AddRectFilled(f.o, f.end, IM_COL32(8, 8, 10, 255));
   for (int i = 0; i < kGameCount; ++i) Backdrop(app.art().Get(i, ArtKind::kHero), home.fade[i], 0.72f);
-  Backdrop(app.projects().info(0).hero, home.fade[kGameCount], 0.6f);  // King Kong for Other TRG Projects
+  Backdrop(app.art().Get(kGoldEditionArt, ArtKind::kHero), home.fade[kGoldTile], 0.72f);
+  Backdrop(app.projects().info(0).hero, home.fade[kProjectsTile], 0.6f);  // King Kong for Other TRG Projects
   Shade();
   if (TopBar({}, true)) app.OpenCollection();
   // A soft dark band at the top keeps the wordmark, its line and the clock readable over bright art.
@@ -195,8 +222,19 @@ void DrawHome(App& app) {
   const GameInfo& game = Games()[g];
   GameUi& gu = app.game_ui(g);
   float y = f.Y(96);
-  const Texture& logo = app.art().Get(g, ArtKind::kLogo);
-  if (on_projects) {
+  const Texture& logo = app.art().Get(on_gold ? kGoldEditionArt : g, ArtKind::kLogo);
+  if (on_gold) {
+    if (logo) {
+      float w = 340 * f.s, h = w * float(logo.height) / float(logo.width);
+      f.dl->AddImage(ImTextureRef(logo.id), ImVec2(f.X(48), y), ImVec2(f.X(48) + w, y + h));
+      y += h + 18 * f.s;
+    } else {
+      Text(f.bold, 40, ImVec2(f.X(48), y), White(), "Trials Evolution: Gold Edition");
+      y += 64 * f.s;
+    }
+    Text(f.regular, 16, ImVec2(f.X(48), y), White(0.72f),
+         "On Steam from Ubisoft. Why this collection plays the original Xbox 360 games instead.", 560);
+  } else if (on_projects) {
     Text(f.bold, 48, ImVec2(f.X(48), y), White(), "Other TRG Projects");
     y += 70 * f.s;
     const std::string line = std::to_string(app.projects().list().size()) +
@@ -218,7 +256,7 @@ void DrawHome(App& app) {
     Text(f.bold, 54, ImVec2(f.X(48), y), White(), game.title);
     y += 76 * f.s;
   }
-  if (on_projects) {
+  if (on_projects || on_gold) {
   } else if (gu.jobs.task.running()) {
     const float fr = gu.jobs.task.fraction();
     Text(f.regular, 16, ImVec2(f.X(48), y), White(0.85f), gu.jobs.task.label() + Percent(fr));
@@ -252,15 +290,17 @@ void DrawHome(App& app) {
     home.grow[t] = still ? target : home.grow[t] + (target - home.grow[t]) * std::min(1.0f, dt * 14.0f);
     float w, h;
     if (t <= kProjectsTile) {
-      w = (132 + 28 * home.grow[t]) * f.s;
+      w = (120 + 24 * home.grow[t]) * f.s;  // five portrait tiles and four buttons fit in 1280
       h = w * 1.5f;
     } else {  // the four buttons, square
       if (t == kSteamTile) x += 22 * f.s;
-      w = h = (104 + 10 * home.grow[t]) * f.s;
+      w = h = (96 + 10 * home.grow[t]) * f.s;
     }
     const ImVec2 a(x, bottom - h), b(x + w, bottom);
     if (t < kGameCount)
       DrawTile(app, t, a, b, t == home.focus);
+    else if (t == kGoldTile)
+      DrawGoldTile(app, a, b, t == home.focus);
     else if (t == kProjectsTile)
       DrawProjectsTile(app, a, b, t == home.focus);
     else if (t == kSteamTile)

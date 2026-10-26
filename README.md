@@ -23,6 +23,8 @@
 
 <sub>The original Xbox 360 game code, translated to native PC code with the <a href="https://github.com/rexglue/rexglue-sdk">ReXGlue SDK</a>. <b>No game files included</b>: bring your own copy of each Xbox Live Arcade game.</sub>
 
+<sub><b><a href="#why-recompile-the-original-trials-trilogy-when-gold-edition-already-exists-on-pc">Why recompile the original Trials trilogy when Gold Edition already exists on PC?</a></b></sub>
+
 </div>
 
 <br>
@@ -36,6 +38,26 @@
 | 📦 **Install from your own packages**, found on your PC by themselves | 🔓 **The full game, always**: never the trial version | 🔄 **Updates itself** and every game |
 | 💾 **Save backups** and restore in one click | 🛋️ **A console style dashboard** with sounds, made for a controller | 🪟 **Borderless fullscreen**, windowed, any monitor |
 | 🚂 **Add to Steam** with its own artwork, ready for Big Picture | 💬 **[Join the Discord](https://discord.gg/8eakYSvBZS)** right from Home | 🦍 **Other TRG Projects**, with King Kong Recompiled ready to install |
+
+## Why recompile the original Trials trilogy when Gold Edition already exists on PC?
+
+While [*Trials Evolution: Gold Edition*](https://store.steampowered.com/app/220160/Trials_Evolution_Gold_Edition/) is available on Steam, it does not faithfully preserve the original Xbox 360 releases.
+
+The Trials HD content was rebuilt using Trials Evolution's engine, resulting in different physics and changes to the original tracks. This means Gold Edition does not provide the exact same gameplay experience as the original Trials HD.
+
+Furthermore, Gold Edition excludes all four major DLC expansions released for Trials HD and Trials Evolution (Big Pack, Big Thrills, Riders of Doom and Origin of Pain), leaving over 150 additional tracks and other content unavailable in the PC release.
+
+| Missing from Gold Edition | |
+| --- | --- |
+| The original Trials HD physics | rebuilt on the Trials Evolution engine |
+| Four major DLC expansions | Big Pack, Big Thrills, Riders of Doom, Origin of Pain |
+| Additional tracks | 151 |
+
+Our goal is not to replace or compete with Ubisoft's existing PC releases. It is to preserve the original Xbox 360 versions of Trials HD, Trials Evolution and Trials Fusion as faithfully as possible, including their original physics, gameplay mechanics, content and individual identities.
+
+By recompiling the original games into native PC executables, we aim to provide a long term preservation solution while also exploring modern improvements such as higher resolutions, improved compatibility, performance optimisations and independent community functionality.
+
+**Gold Edition lets you play much of the classic Trials content. Our goal is to preserve the original games themselves.** If you would like to play it, [Trials Evolution: Gold Edition is on Steam](https://store.steampowered.com/app/220160/Trials_Evolution_Gold_Edition/); the launcher has a page about it on Home too.
 
 ## The games
 
@@ -107,6 +129,7 @@ Everything is set up before a game starts, with a controller, the keyboard or th
 - **All three games** side by side, with their box art and artwork
 - Each game shows at a glance whether it's **ready to play**, its version and your **achievements**
 - **Settings** for the launcher, and **Other TRG Projects**
+- **Trials Evolution: Gold Edition**: a page about Ubisoft's Steam release, with a link to its store page, and why this collection preserves the original games
 - **Add to Steam**: adds the collection to your Steam library as a non Steam game, with its own artwork (cover, banner, header, logo and icon), and switches Steam Input off for it so your controller keeps working
 - **Discord**: joins the official server
 - Plays with a **controller**, the **keyboard** or the **mouse**, with interface sounds

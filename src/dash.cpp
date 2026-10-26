@@ -84,8 +84,11 @@ void ReadInput() {
     if (ImGui::IsKeyPressed(ImGuiKey(k), false)) g_pad = true;
   for (int k = ImGuiKey_NamedKey_BEGIN; k < ImGuiKey_GamepadStart; ++k)
     if (ImGui::IsKeyPressed(ImGuiKey(k), false)) g_pad = false;
-  if (io.MouseDelta.x * io.MouseDelta.x + io.MouseDelta.y * io.MouseDelta.y > 4.0f || ImGui::IsMouseClicked(0))
-    g_pad = false;
+  // The mouse takes over again after a real move (sensor jitter of a pixel or two would keep showing the cursor
+  // while the controller is in use) or a click.
+  static float travel = 0.0f;
+  travel = g_pad ? travel + std::abs(io.MouseDelta.x) + std::abs(io.MouseDelta.y) : 0.0f;
+  if (travel > 24.0f || ImGui::IsMouseClicked(0)) g_pad = false;
 
   for (int b = 0; b < int(Btn::kCount); ++b) {
     bool p = g_pending[b];
