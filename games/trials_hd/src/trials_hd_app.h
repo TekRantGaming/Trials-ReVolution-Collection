@@ -4,10 +4,31 @@
 
 #pragma once
 
+#include <cstdint>
+#include <filesystem>
+#include <string>
+
 #include <rex/audio/sdl/sdl_audio_system.h>
 #include <rex/cvar.h>
 #include <rex/rex_app.h>
 #include <rex/runtime.h>
+#include <rex/ui/overlay/achievement_notification.h>
+#include <rex/ui/overlay/debug_overlay.h>
+
+namespace rex::ui {
+class Window;
+class WindowedAppContext;
+}  // namespace rex::ui
+
+namespace trials {
+void InstallFpeGuard();                     // fpe_guard.cpp
+void ApplyPortDefaults();                   // port_defaults.cpp
+rex::ui::FrameStats GuestFrameStats();      // frame_stats.cpp
+void ApplyRenderQuality(rex::ui::Window* window);  // render_quality.cpp
+std::unique_ptr<rex::ui::AchievementNotificationDialog> CreateAchievementToast(
+    rex::ui::ImGuiDrawer* drawer, rex::ui::ImmediateDrawer* immediate, rex::Runtime* runtime);  // achievement_toast.cpp
+void ExportAchievements(rex::Runtime* runtime, const std::filesystem::path& game_data_root);  // achievements_export.cpp
+}  // namespace trials
 
 #if defined(TH_DEV_TOOLS)
 namespace th {
@@ -35,29 +56,39 @@ class TrialsHdApp : public rex::ReXApp {
     rex::cvar::SetFlagByName("license_mask", "1");
   }
 
-  // Override virtual hooks for customization:
-  // void OnPostInitLogging() override {}
-  // void OnLoadXexImage(std::string& xex_image) override {}
-  // void OnPostLoadXexImage() override {}
+  // After the GPU plugin and the window exist, before the GPU starts: the render scale from the upscaler mode and
+  // the 1280 x 720 guest video mode (render_quality.cpp).
+  std::optional<rex::PathConfig> OnFinalizePaths(const rex::PathConfig& defaults,
+                                                 std::function<void(rex::PathConfig)> resume) override {
+    (void)resume;
+    trials::ApplyRenderQuality(window());
+    return defaults;
+  }
+
+#if defined(__linux__)
+  // On Linux the program sits in the read only AppImage: its settings file (which the launcher writes) and its logs
+  // go in the game's own user folder (XDG_DATA_HOME/<game>, where its saves are).
+  void OnConfigurePaths(rex::PathConfig& paths) override {
+    paths.config_path = paths.user_data_root / (std::string(GetName()) + ".toml");
+    std::error_code ec;
+    std::filesystem::create_directories(paths.user_data_root / "logs", ec);
+    if (rex::cvar::GetFlagByName("log_file").empty())
+      rex::cvar::SetFlagByName("log_file", (paths.user_data_root / "logs" / (std::string(GetName()) + ".log")).string());
+  }
+#endif
+
   void OnPostSetup() override {
-    // GPU defaults (the GPU plugin's settings exist only from here on; a value in the settings file still wins).
-    // From the reference port, snufflyyy/trials-hd-recompiled (MIT), and measured here: reading every memory export
-    // back to the CPU held gameplay at 11 to 12 FPS, without it the game holds 60; the CPU written pages stay valid
-    // between frames because writes are watched; the game measures exposure from small resolves on the CPU.
-    auto port_default = [](const char* name, const char* value) {
-      if (rex::cvar::GetFlagSource(name) == rex::cvar::Source::kDefault) rex::cvar::SetFlagByName(name, value);
-    };
-    port_default("readback_memexport", "false");
-    port_default("clear_memory_page_state", "false");
-    port_default("readback_resolve", "fast");
+    trials::InstallFpeGuard();  // after the runtime's own signal handlers
+    trials::ApplyPortDefaults();
+    SetGuestFrameStats(trials::GuestFrameStats);  // the F3 overlay's frame rate
+    trials::ExportAchievements(runtime(), game_data_root());
 #if defined(TH_DEV_TOOLS)
     th::StartDevTools(runtime(), app_context(), PPCImageConfig.image_base, PPCImageConfig.image_size);
 #endif
   }
-  // void OnCreateDialogs(rex::ui::ImGuiDrawer* drawer) override {}
-  // std::unique_ptr<rex::ui::ImGuiDialog> CreateAchievementsOverlay() override;
-  // std::unique_ptr<rex::ui::AchievementNotificationDialog>
-  // CreateAchievementNotificationDialog() override;
-  // void OnShutdown() override {}
-  // void OnConfigurePaths(rex::PathConfig& paths) override {}
+
+  // Achievement notifications in the TRG ports' style (achievement_toast.cpp).
+  std::unique_ptr<rex::ui::AchievementNotificationDialog> CreateAchievementNotificationDialog() override {
+    return trials::CreateAchievementToast(imgui_drawer(), immediate_drawer(), runtime());
+  }
 };

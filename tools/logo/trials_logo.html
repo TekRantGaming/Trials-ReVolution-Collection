@@ -1,0 +1,56 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!-- The collection's wordmark, rendered to tools/logo/trials_logo.png by tools/logo/render_logo.ps1
+     (headless Edge, transparent background) and built into the launcher (src/logo_png.h). Our own design:
+     a tyre with a speed streak, "TRIALS" in a heavy orange and steel face and "THE RECOMPILATION COLLECTION"
+     under it. Fonts: Black Ops One and Oswald (SIL Open Font Licence), from Google Fonts. -->
+<link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Oswald:wght@600&display=block" rel="stylesheet">
+<style>
+  html, body { margin: 0; background: transparent; }
+  body { width: 1400px; height: 440px; display: flex; align-items: center; justify-content: center; }
+  svg { overflow: visible; }
+</style></head>
+<body>
+<svg width="1400" height="440" viewBox="0 0 1400 440" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="fire" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFE7A8"/>
+      <stop offset="0.35" stop-color="#FFB13B"/>
+      <stop offset="0.7" stop-color="#F06A12"/>
+      <stop offset="1" stop-color="#B8320C"/>
+    </linearGradient>
+    <linearGradient id="steel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F4F6F8"/>
+      <stop offset="0.5" stop-color="#B9C0C8"/>
+      <stop offset="1" stop-color="#6E7680"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="9" flood-color="#000" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+
+  <!-- tyre with a speed streak -->
+  <g transform="translate(700,74)" filter="url(#shadow)">
+    <path d="M-150,6 L-62,6" stroke="#F06A12" stroke-width="10" stroke-linecap="round"/>
+    <path d="M-130,24 L-58,24" stroke="#FFB13B" stroke-width="7" stroke-linecap="round"/>
+    <path d="M-112,-12 L-60,-12" stroke="#FFE7A8" stroke-width="5" stroke-linecap="round"/>
+    <circle r="50" fill="#1A1B1E" stroke="#0B0B0C" stroke-width="8"/>
+    <circle r="50" fill="none" stroke="url(#steel)" stroke-width="5" stroke-dasharray="9 7"/>
+    <circle r="26" fill="url(#steel)" stroke="#0B0B0C" stroke-width="6"/>
+    <circle r="8" fill="#F06A12" stroke="#0B0B0C" stroke-width="4"/>
+  </g>
+
+  <!-- TRIALS: thick dark outline, then the fire face with a light rim -->
+  <g filter="url(#shadow)" font-family="Black Ops One" font-size="190" text-anchor="middle" letter-spacing="10">
+    <text x="700" y="318" fill="#0B0B0C" stroke="#0B0B0C" stroke-width="30" stroke-linejoin="round">TRIALS</text>
+    <text x="700" y="318" fill="url(#fire)" stroke="#FFF4D6" stroke-width="3" paint-order="stroke">TRIALS</text>
+  </g>
+
+  <!-- THE RECOMPILATION COLLECTION on a steel bar -->
+  <g filter="url(#shadow)">
+    <rect x="300" y="346" width="800" height="58" rx="8" fill="url(#steel)" stroke="#0B0B0C" stroke-width="7"/>
+    <text x="700" y="390" text-anchor="middle" font-family="Oswald" font-weight="600" font-size="38" letter-spacing="9"
+          fill="#15161A">THE RECOMPILATION COLLECTION</text>
+  </g>
+</svg>
+</body></html>
