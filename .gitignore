@@ -1,0 +1,23 @@
+# The owner's game packages, what is extracted from them and the code generated from them: never commit.
+/Trials-*-Recomp/
+*.xex
+*.pak
+*.xwb
+/games/*/assets/
+/games/*/generated/
+# Private developer aids and reference material.
+/games/*/dev/
+/devtools/
+/ref/
+/OWNER.md
+/DECISIONS.md
+# Build output, logs, test runs.
+/build/
+/runs/
+/dist/
+/games/*/out/
+/games/*/codegen.log
+/games/*/build*.log
+*.log
+# The ReXGlue SDK install (a junction to the patched SDK).
+/tools/rexglue/

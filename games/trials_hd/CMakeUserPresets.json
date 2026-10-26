@@ -1,0 +1,34 @@
+{
+    "version": 6,
+    "configurePresets": [
+        {
+            "name": "user-env",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_PREFIX_PATH": "${sourceDir}/../../tools/rexglue/win-amd64"
+            }
+        },
+        {
+            "name": "user-env-linux",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_PREFIX_PATH": "${sourceDir}/../../tools/rexglue/linux-amd64"
+            }
+        },
+        { "name": "th-debug",          "inherits": ["win-amd64-debug",          "user-env"] },
+        { "name": "th-release",        "inherits": ["win-amd64-release",        "user-env"] },
+        { "name": "th-relwithdebinfo", "inherits": ["win-amd64-relwithdebinfo", "user-env"] },
+        { "name": "th-linux-release",  "inherits": ["linux-amd64-release",      "user-env-linux"] },
+        { "name": "th-dev",            "inherits": ["th-release"], "cacheVariables": { "TH_DEV_TOOLS": "ON" } }
+    ],
+    "buildPresets": [
+        { "name": "th-debug",          "configurePreset": "th-debug" },
+        { "name": "th-release",        "configurePreset": "th-release" },
+        { "name": "th-relwithdebinfo", "configurePreset": "th-relwithdebinfo" },
+        { "name": "th-linux-release",  "configurePreset": "th-linux-release" },
+        { "name": "th-dev",            "configurePreset": "th-dev" }
+    ]
+}
+
+
+

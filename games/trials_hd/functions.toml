@@ -1,0 +1,112 @@
+# From Trials HD Recompiled by snufflyyy (MIT): https://github.com/snufflyyy/trials-hd-recompiled
+# Codegen overrides for Trials HD (default.xex, title 5841095A, v0.0.1.2).
+# Addresses only: no game code lives in this repository.
+#
+# Function starts the analyzer misses. Each of these is only ever reached by a
+# tail call (`b`) or through a pointer in data (vtables, callback tables), so
+# nothing marks it as an entry point; calling one at runtime would hit
+# InvalidFunctionTrap. Regenerate the data-referenced list with:
+#   see the reference port (snufflyyy/trials-hd-recompiled, MIT)
+
+[functions]
+# Tail-call targets (reported by codegen as UnresolvedCall)
+0x821C3170 = { size = 0x8 }  # this-adjustor thunk, chained from 0x821C3178
+0x821DD448 = {}              # leaf, tail-called from 0x821CBAFC
+0x8221C0F8 = {}              # leaf, tail-called from 0x82226EF8
+
+# Referenced from data (vtables / callback tables)
+0x820FF170 = {}  # referenced from data at 0x820C8990, 0x820C8A68, 0x820C8B40
+0x820FF4C8 = {}  # referenced from data at 0x820C8C14, 0x820C92D4
+0x821000E8 = {}  # referenced from data at 0x820C8BDC, 0x820C8E64, 0x820C91C4
+0x82109078 = {}  # referenced from data at 0x820CA230, 0x820CA2D0
+0x82119C68 = {}  # referenced from data at 0x820CE228
+0x82151B90 = {}  # referenced from data at 0x8200913C, 0x82009174
+0x82160150 = {}  # referenced from data at 0x8200A9C8, 0x8200A9D0
+0x821622A8 = {}  # referenced from data at 0x8200AAA8
+0x821C6940 = {}  # referenced from data at 0x82010378, 0x82010410, 0x820105A0
+0x821C6948 = {}  # referenced from data at 0x82010374, 0x8201040C, 0x8201059C
+0x821C6950 = {}  # referenced from data at 0x82010388, 0x82010420, 0x820105B0
+0x821C6958 = {}  # referenced from data at 0x82010384, 0x8201041C, 0x820105AC
+0x821C6960 = {}  # referenced from data at 0x820103AC
+0x821C6970 = {}  # referenced from data at 0x82010360, 0x820103F8, 0x82010588
+0x821CB4C8 = {}  # referenced from data at 0x82010364, 0x820103FC, 0x8201058C
+0x821CB4D0 = {}  # referenced from data at 0x82010744
+0x821CB4E0 = {}  # referenced from data at 0x82010728, 0x82010798
+0x821CB4E8 = {}  # referenced from data at 0x820106F8, 0x82010768
+0x821CB770 = {}  # referenced from data at 0x8201036C, 0x82010404, 0x82010594
+0x821CB778 = {}  # referenced from data at 0x820107B4
+0x821CB788 = {}  # referenced from data at 0x82010730, 0x820107A0
+0x821CB790 = {}  # referenced from data at 0x82010368, 0x82010400, 0x82010590
+0x821CB798 = {}  # referenced from data at 0x8201037C, 0x82010414, 0x820105A4
+0x821CB7A0 = {}  # referenced from data at 0x820103A0, 0x82010438, 0x820105C8
+0x821CB7A8 = {}  # referenced from data at 0x8201039C, 0x82010434, 0x820105C4
+0x821CBEE0 = {}  # referenced from data at 0x820108D4
+0x821CCC30 = {}  # referenced from data at 0x8201086C
+0x821CDA40 = {}  # referenced from data at 0x82010930
+0x821D0848 = {}  # referenced from data at 0x82010B14
+0x821E0938 = {}  # referenced from data at 0x82014B34, 0x82014B38
+0x82210958 = {}  # referenced from data at 0x82032144
+0x822163E0 = {}  # referenced from data at 0x820327B0, 0x82032858, 0x82032900
+0x82224E08 = {}  # referenced from data at 0x820337D8
+0x82237720 = {}  # referenced from data at 0x820349E4
+0x8223EED8 = {}  # referenced from data at 0x82035020, 0x82035080
+0x8223EEF8 = {}  # referenced from data at 0x82035084
+0x8223EF18 = {}  # referenced from data at 0x8203507C
+0x8223F0B0 = {}  # referenced from data at 0x820350D0
+0x8223F0D0 = {}  # referenced from data at 0x820350D4
+0x8223F0F0 = {}  # referenced from data at 0x820350D8
+0x8223F110 = {}  # referenced from data at 0x820350DC
+0x8223F130 = {}  # referenced from data at 0x820350E0
+0x8223F150 = {}  # referenced from data at 0x820350E4
+0x8223F170 = {}  # referenced from data at 0x820350E8
+0x8223F190 = {}  # referenced from data at 0x820350EC
+0x8223F1B0 = {}  # referenced from data at 0x820350F0
+0x8223F1D0 = {}  # referenced from data at 0x820350F4
+0x82246220 = {}  # referenced from data at 0x8203500C, 0x8203505C
+0x823A3180 = {}  # referenced from data at 0x8207BA00, 0x8207BC88, 0x82097790
+0x823A3440 = {}  # referenced from data at 0x8207BBC4, 0x8207BE4C, 0x82097954
+0x823A3468 = {}  # referenced from data at 0x8207BBC8, 0x8207BE50, 0x82097958
+0x823A3490 = {}  # referenced from data at 0x8207BBCC, 0x8207BE54, 0x8209795C
+0x823A34B8 = {}  # referenced from data at 0x8207BBD0, 0x8207BE58, 0x82097960
+0x823A38E8 = {}  # referenced from data at 0x8207BC04, 0x8207BE8C
+0x824DC1E8 = {}  # referenced from data at 0x820AC37C
+0x8250BCD8 = {}  # referenced from data at 0x820B08F4, 0x820B0914
+0x82516928 = {}  # referenced from data at 0x820B0D5C, 0x820B44FC, 0x820B4564
+0x82583E88 = {}  # referenced from data at 0x820C9A3C, 0x820CA77C, 0x820CA8AC
+0x82585A68 = {}  # referenced from data at 0x820CA71C
+0x82585AC8 = {}  # referenced from data at 0x820CA70C
+0x8264BF10 = {}  # referenced from data at 0x820C2370
+0x82675BA8 = {}  # referenced from data at 0x820CDB80
+
+# Built in code with lis/addi (callbacks and vcall stubs stored at runtime)
+0x820F0868 = {}  # address built at 0x82157678, 0x82661A80, 0x82661ADC
+0x8210AF7C = {}  # address built at 0x8210AF64
+0x8210B05C = {}  # address built at 0x8210B044
+0x82188DB0 = {}  # address built at 0x821946A8
+0x8220EF8C = {}  # address built at 0x8220EF74
+0x82213B84 = {}  # address built at 0x82213B6C
+0x8223ADCC = {}  # address built at 0x8223ADB4
+0x8223B018 = {}  # address built at 0x8223B000
+0x82240A48 = {}  # address built at 0x82242FE0
+0x82257BA0 = {}  # address built at 0x82257B88
+0x823A3908 = {}  # address built at 0x823AC96C, 0x823AD404
+0x823A3918 = {}  # address built at 0x823ACA94
+0x823A3928 = {}  # address built at 0x823ACD44
+0x823A3938 = {}  # address built at 0x823ACD94
+0x823A3948 = {}  # address built at 0x823ACB74
+0x823A3958 = {}  # address built at 0x823AC8CC
+0x823A3968 = {}  # address built at 0x823AD324
+0x823A3978 = {}  # address built at 0x823AD10C
+0x823A3988 = {}  # address built at 0x823AC91C
+0x823A3998 = {}  # address built at 0x823ACDE4
+0x82427318 = {}  # address built at 0x82413A38, 0x82413AAC
+0x8245CE10 = {}  # address built at 0x824761B8
+0x825479E8 = {}  # address built at 0x825479D0
+0x82547B18 = {}  # address built at 0x82547B00
+0x82547D58 = {}  # address built at 0x82547D40
+0x82580D68 = {}  # address built at 0x82580D50
+0x82585CE8 = {}  # address built at 0x82585CD0
+0x82585F50 = {}  # address built at 0x82585F38
+0x8261FB1C = {}  # address built at 0x8261FB04
+0x8262D448 = {}  # address built at 0x8262D430
+0x8267325C = {}  # address built at 0x82673244

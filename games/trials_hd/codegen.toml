@@ -1,0 +1,11 @@
+# From Trials HD Recompiled by snufflyyy (MIT): https://github.com/snufflyyy/trials-hd-recompiled
+# Codegen settings for Trials HD (default.xex, title 5841095A, v0.0.1.2).
+# Addresses only: no game code lives in this repository.
+
+# MSVC CRT setjmp/longjmp. Mapped so codegen emits host setjmp/longjmp at their
+# call sites; recompiled as-is, longjmp (which unwinds through RtlUnwind)
+# restores guest r1/r31/lr while the host stack stays put, corrupting every
+# frame above it. Identified by shape: setjmp saves r14-r31 and f14-f31 into
+# the buffer in r3; longjmp restores f14-f31 and unwinds with the value in r4.
+setjmp_address = 0x822FA320
+longjmp_address = 0x822FA000
