@@ -1,6 +1,7 @@
 // The collection's defaults (they change only the default, so the settings file the launcher writes and the command
 // line still win). GPU plugin settings exist only once the plugin is loaded, so this runs in OnPostSetup.
-//   swap_post_effect = fxaa              anti aliasing on by default
+//   swap_post_effect = fxaa              anti aliasing on by default (it takes effect from render_quality.cpp,
+//                                        set before the GPU starts; this one only keeps the settings file in step)
 //   readback_memexport = false           reading every memory export back to the CPU held races at 11 to 12 FPS;
 //                                        without it the game holds 60 (from the reference port,
 //                                        snufflyyy/trials-hd-recompiled, MIT, and measured here 26 Oct 2026)

@@ -242,7 +242,7 @@ std::vector<Section> GameSections(App& app, int g) {
   trg::SettingsStore& st = *app.game_ui(g).settings;
   std::vector<Section> s;
 
-  s.push_back({"Display", [&st](Rows& r) {
+  s.push_back({"Display", [&st, g](Rows& r) {
     r.Choice("Window mode", "Fullscreen fills your screen. Windowed opens a window you can move and resize.",
              "fullscreen", "true", {{"true", "Fullscreen"}, {"false", "Windowed"}});
     // The windowed size: window_width and window_height together. The SDK keeps them in logical pixels (Windows
@@ -290,15 +290,19 @@ std::vector<Section> GameSections(App& app, int g) {
         st.Save();
       }
     }
-    // trials_frame_rate: Trials HD draws at this rate in its fps_unlock.cpp, Evolution and Fusion pace to it in
-    // games/shared/src/frame_limit.cpp (0 is no limit); 60 by default.
-    r.Choice("Frame rate", "60 is how the game ran on the Xbox 360. Higher is smoother: the physics keeps its 60 "
-             "updates a second and each frame is drawn between them. No limit runs as fast as your PC allows. Above "
-             "60, turn Vertical sync off (a G-SYNC or FreeSync screen still stops tearing): with it on, a frame that "
-             "misses the screen's refresh waits for the next one, and the rate can drop to half.",
-             "trials_frame_rate", "60",
-             {{"30", "30"}, {"60", "60"}, {"120", "120"}, {"144", "144"}, {"165", "165"}, {"240", "240"},
-              {"0", "No limit"}});
+    // trials_frame_rate: Trials HD draws at this rate in its fps_unlock.cpp (0 is no limit); 60 by default.
+    // Evolution and Fusion always run at 60: their game speed follows the frame rate (frame_limit.cpp).
+    if (std::string(Games()[g].id) != "trials_hd") {
+      r.Info("Frame rate", "60, as on the Xbox 360");
+    } else {
+      r.Choice("Frame rate", "60 is how the game ran on the Xbox 360. Higher is smoother: the physics keeps its 60 "
+               "updates a second and each frame is drawn between them. No limit runs as fast as your PC allows. Above "
+               "60, turn Vertical sync off (a G-SYNC or FreeSync screen still stops tearing): with it on, a frame that "
+               "misses the screen's refresh waits for the next one, and the rate can drop to half.",
+               "trials_frame_rate", "60",
+               {{"30", "30"}, {"60", "60"}, {"120", "120"}, {"144", "144"}, {"165", "165"}, {"240", "240"},
+                {"0", "No limit"}});
+    }
     r.Toggle("Keep the original shape", "Keeps the picture 16:9 with black bars instead of stretching it to fill "
              "a screen of another shape.", "present_letterbox", true);
   }});
