@@ -33,7 +33,7 @@
 
 | | | |
 | :--- | :--- | :--- |
-| 🏍️ **All 3 games** in one launcher | 🖥️ **Up to 4K and beyond**, at 60, 120 or an **unlimited** frame rate | ✨ **AMD FSR 1 and NVIDIA NIS** upscaling |
+| 🏍️ **All 3 games** in one launcher | 🖥️ **Up to 4K and beyond**; Trials HD at 60, 120 or an **unlimited** frame rate | ✨ **AMD FSR 1 and NVIDIA NIS** upscaling |
 | 🎮 **Any controller**, or the keyboard with your own keys | 🏆 **Achievements** with notifications in game | ↩️ **Back to the launcher** any time: hold Back + Start, or Esc |
 | 📦 **Install from your own packages**, found on your PC by themselves | 🔓 **The full game, always**: never the trial version | 🔄 **Updates itself** and every game |
 | 💾 **Save backups** and restore in one click | 🛋️ **A console style dashboard** with sounds, made for a controller | 🪟 **Borderless fullscreen**, windowed, any monitor |
@@ -163,7 +163,7 @@ Everything is set up before a game starts, with a controller, the keyboard or th
 
 ### Display and Graphics
 - **Fullscreen** or **windowed**, window size, **choose the monitor**, vertical sync
-- **Frame rate**: 30, **60** (the default, like the Xbox 360), 120, 144, 165, 240 or **no limit**. The games still run at the right speed
+- **Frame rate** in Trials HD: 30, **60** (the default, like the Xbox 360), 120, 144, 165, 240 or **no limit**, with the physics at its own 60 steps a second. Trials Evolution and Trials Fusion run at 60: their game speed follows the frame rate
 - **Upscaler**: AMD FSR 1 or NVIDIA NIS
 - **Render resolution** from the original up to 6x, also through the upscaler's Native, Quality, Balanced and Performance modes (2x holds 60 FPS in all three games)
 - **FXAA** and **texture filtering** up to 16x
@@ -215,7 +215,7 @@ Each game's **Saves and install** page backs up your saves and restores them, op
 | | Xbox 360 | PC |
 | --- | :---: | :---: |
 | Resolution | 1280 x 720 (Evolution and Fusion a little less) | up to 6x the original |
-| Frame rate | 60 fps | 30, 60, 120, 144, 165, 240 or no limit |
+| Frame rate | 60 fps | Trials HD 30, 60, 120, 144, 165, 240 or no limit; Evolution and Fusion 60 |
 | Upscaling | none | AMD FSR 1 or NVIDIA NIS |
 | Anti aliasing | console | FXAA, or higher resolutions |
 | Texture filtering | console | up to 16x |
