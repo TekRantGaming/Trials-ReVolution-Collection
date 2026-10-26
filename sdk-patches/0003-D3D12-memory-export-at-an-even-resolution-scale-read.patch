@@ -1,7 +1,7 @@
 From 75a2df5ba534bbce5b7019b54305985bcdbe360d Mon Sep 17 00:00:00 2001
 From: TekRantGaming <craigferels896@gmail.com>
 Date: Mon, 26 Oct 2026 18:56:24 +0000
-Subject: [PATCH 3/3] D3D12: memory export at an even resolution scale reads
+Subject: [PATCH 3/4] D3D12: memory export at an even resolution scale reads
  interpolants at the guest pixel center; scaled readback size limit
 
 At 2x (any even scale) the host pixel that exports is half a host pixel off the guest pixel center, so texture

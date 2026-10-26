@@ -293,7 +293,9 @@ std::vector<Section> GameSections(App& app, int g) {
     // trials_frame_rate: Trials HD draws at this rate in its fps_unlock.cpp, Evolution and Fusion pace to it in
     // games/shared/src/frame_limit.cpp (0 is no limit); 60 by default.
     r.Choice("Frame rate", "60 is how the game ran on the Xbox 360. Higher is smoother: the physics keeps its 60 "
-             "updates a second and each frame is drawn between them. No limit runs as fast as your PC allows.",
+             "updates a second and each frame is drawn between them. No limit runs as fast as your PC allows. Above "
+             "60, turn Vertical sync off (a G-SYNC or FreeSync screen still stops tearing): with it on, a frame that "
+             "misses the screen's refresh waits for the next one, and the rate can drop to half.",
              "trials_frame_rate", "60",
              {{"30", "30"}, {"60", "60"}, {"120", "120"}, {"144", "144"}, {"165", "165"}, {"240", "240"},
               {"0", "No limit"}});

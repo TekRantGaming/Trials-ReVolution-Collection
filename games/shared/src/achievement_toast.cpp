@@ -31,6 +31,7 @@
 #include <imgui.h>
 
 #include <rex/cvar.h>
+#include <rex/ui/windowed_app_context.h>
 #include <rex/logging.h>
 #include <rex/ui/overlay/achievement_icon_cache.h>
 #include <rex/ui/overlay/achievement_notification.h>
@@ -131,13 +132,27 @@ void PlayChime() {
 
 class AchievementToast final : public rex::ui::AchievementNotificationDialog {
  public:
-  AchievementToast(rex::ui::ImGuiDrawer* drawer, rex::ui::ImmediateDrawer* immediate, rex::Runtime* runtime)
-      : AchievementNotificationDialog(drawer), icons_(immediate, runtime) {}
+  AchievementToast(rex::ui::ImGuiDrawer* drawer, rex::ui::ImmediateDrawer* immediate, rex::Runtime* runtime,
+                   rex::ui::WindowedAppContext& app_context)
+      : AchievementNotificationDialog(drawer), icons_(immediate, runtime), app_context_(app_context) {
+    // Attached to the drawer only while a notification is showing: while any overlay is attached the window is
+    // repainted at every screen refresh, not only when the game makes a frame, which showed as the screen's
+    // refresh rate instead of the game's and made the motion uneven.
+    imgui_drawer()->RemoveDialog(this);
+  }
+
+  ~AchievementToast() override { *alive_ = false; }
 
   void Push(const rex::system::AchievementEvent& event) override {
     if (!REXCVAR_GET(trials_achievement_toasts)) return;
-    std::lock_guard<std::mutex> lock(mutex_);
-    queue_.push_back({event, -1.0});
+    {
+      std::lock_guard<std::mutex> lock(mutex_);
+      queue_.push_back({event, -1.0});
+    }
+    // Attach on the UI thread (notifications arrive on the game's threads).
+    app_context_.CallInUIThread([this, alive = alive_] {
+      if (*alive) imgui_drawer()->AddDialog(this);
+    });
   }
 
  protected:
@@ -146,7 +161,10 @@ class AchievementToast final : public rex::ui::AchievementNotificationDialog {
     const double now = ImGui::GetTime();
     {
       std::lock_guard<std::mutex> lock(mutex_);
-      if (queue_.empty()) return;
+      if (queue_.empty()) {
+        imgui_drawer()->RemoveDialog(this);  // nothing left to show: stop the repaints
+        return;
+      }
       if (queue_.front().started < 0) {
         queue_.front().started = now;
         PlayChime();
@@ -228,6 +246,8 @@ class AchievementToast final : public rex::ui::AchievementNotificationDialog {
     double started = -1.0;  // ImGui time when it became visible
   };
   rex::ui::AchievementIconCache icons_;
+  rex::ui::WindowedAppContext& app_context_;
+  std::shared_ptr<bool> alive_ = std::make_shared<bool>(true);  // false once destroyed (for queued UI calls)
   std::mutex mutex_;
   std::deque<Toast> queue_;
 };
@@ -236,8 +256,9 @@ class AchievementToast final : public rex::ui::AchievementNotificationDialog {
 
 std::unique_ptr<rex::ui::AchievementNotificationDialog> CreateAchievementToast(rex::ui::ImGuiDrawer* drawer,
                                                                                rex::ui::ImmediateDrawer* immediate,
-                                                                               rex::Runtime* runtime) {
-  return std::make_unique<AchievementToast>(drawer, immediate, runtime);
+                                                                               rex::Runtime* runtime,
+                                                                               rex::ui::WindowedAppContext& app_context) {
+  return std::make_unique<AchievementToast>(drawer, immediate, runtime, app_context);
 }
 
 }  // namespace trials

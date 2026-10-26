@@ -27,7 +27,8 @@ rex::ui::FrameStats GuestFrameStats();      // frame_stats.cpp
 void ApplyFrameRate();                      // frame_stats.cpp
 void ApplyRenderQuality(rex::ui::Window* window);  // render_quality.cpp
 std::unique_ptr<rex::ui::AchievementNotificationDialog> CreateAchievementToast(
-    rex::ui::ImGuiDrawer* drawer, rex::ui::ImmediateDrawer* immediate, rex::Runtime* runtime);  // achievement_toast.cpp
+    rex::ui::ImGuiDrawer* drawer, rex::ui::ImmediateDrawer* immediate, rex::Runtime* runtime,
+    rex::ui::WindowedAppContext& app_context);  // achievement_toast.cpp
 void ExportAchievements(rex::Runtime* runtime, const std::filesystem::path& game_data_root);  // achievements_export.cpp
 }  // namespace trials
 
@@ -91,6 +92,6 @@ class TrialsHdApp : public rex::ReXApp {
 
   // Achievement notifications in the TRG ports' style (achievement_toast.cpp).
   std::unique_ptr<rex::ui::AchievementNotificationDialog> CreateAchievementNotificationDialog() override {
-    return trials::CreateAchievementToast(imgui_drawer(), immediate_drawer(), runtime());
+    return trials::CreateAchievementToast(imgui_drawer(), immediate_drawer(), runtime(), app_context());
   }
 };

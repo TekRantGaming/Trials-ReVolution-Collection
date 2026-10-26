@@ -1,0 +1,44 @@
+From 05ad858f657a439282f2b09b960b3cf43c5a4362 Mon Sep 17 00:00:00 2001
+From: TekRantGaming <craigferels896@gmail.com>
+Date: Mon, 26 Oct 2026 22:40:53 +0000
+Subject: [PATCH 4/4] D3D12: getCompTexLOD reports the console's LOD under
+ resolution scaling
+
+For a texture that is not itself resolution scaled the host LOD is log2(scale) lower than the guest's. Trials
+Evolution and Trials Fusion request virtual texture pages with it, and at 2x asked for four times the pages.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../pipeline/shader/dxbc_translator_fetch.cpp    | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/src/graphics/pipeline/shader/dxbc_translator_fetch.cpp b/src/graphics/pipeline/shader/dxbc_translator_fetch.cpp
+index 573858f..dfc776a 100644
+--- a/src/graphics/pipeline/shader/dxbc_translator_fetch.cpp
++++ b/src/graphics/pipeline/shader/dxbc_translator_fetch.cpp
+@@ -1400,6 +1400,22 @@ void DxbcShaderTranslator::ProcessTextureFetchInstruction(
+         // Close the signedness check.
+         a_.OpEndIf();
+       }
++      // With resolution scaling a host pixel covers 1/scale of a guest pixel, so for a texture that is not itself
++      // resolution scaled the LOD comes out log2(scale) lower than the console's. Report the console's LOD: games
++      // use it for their own logic (Trials Evolution and Trials Fusion request virtual texture pages with it, and
++      // at 2x requested four times the pages, which flooded their streaming).
++      if (draw_resolution_scale_x_ > 1 || draw_resolution_scale_y_ > 1) {
++        const float lod_add = 0.5f * (std::log2(float(draw_resolution_scale_x_)) +
++                                      std::log2(float(draw_resolution_scale_y_)));
++        a_.OpAnd(dxbc::Dest::R(is_unsigned_temp, 0b0001),
++                 LoadSystemConstant(SystemConstants::Index::kTexturesResolutionScaled,
++                                    offsetof(SystemConstants, textures_resolution_scaled), dxbc::Src::kXXXX),
++                 dxbc::Src::LU(uint32_t(1) << tfetch_index));
++        a_.OpIf(false, dxbc::Src::R(is_unsigned_temp, dxbc::Src::kXXXX));
++        a_.OpAdd(dxbc::Dest::R(system_temp_result_, 0b0001), dxbc::Src::R(system_temp_result_, dxbc::Src::kXXXX),
++                 dxbc::Src::LF(lod_add));
++        a_.OpEndIf();
++      }
+       // Release is_unsigned_temp.
+       PopSystemTemp();
+     } else {
+-- 
+2.55.0.windows.5
+
