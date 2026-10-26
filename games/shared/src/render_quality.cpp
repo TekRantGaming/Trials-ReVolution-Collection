@@ -97,7 +97,7 @@ void ApplyRenderQuality(rex::ui::Window* window) {
     SetCvarDefault(axis, std::to_string(scale));
     rex::cvar::ResetToDefault(axis);
   }
-  REXLOG_INFO("BK: render quality {} at {}p output: {}x ({}p)", mode, height, scale, scale * 720);
+  REXLOG_INFO("Trials: render quality {} at {}p output: {}x ({}p)", mode, height, scale, scale * 720);
 }
 
 }  // namespace trials

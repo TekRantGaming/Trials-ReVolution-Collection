@@ -45,6 +45,6 @@ endif()
 # Private developer aids (dev/, never in the repo): screenshots and a scripted controller for tests.
 option(TH_DEV_TOOLS "Build the developer aids in dev/" OFF)
 if(TH_DEV_TOOLS)
-    target_sources(trials_hd PRIVATE dev/dev_tools.cpp dev/dev_pad.cpp dev/dev_input_hooks.cpp)
+    target_sources(trials_hd PRIVATE dev/dev_tools.cpp dev/dev_pad.cpp)
     target_compile_definitions(trials_hd PRIVATE TH_DEV_TOOLS=1)
 endif()

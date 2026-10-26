@@ -24,6 +24,7 @@ set(TRIALSFUSION_SOURCES
     ../shared/src/return_to_launcher.cpp
     ../shared/src/render_quality.cpp
     ../shared/src/game_window.cpp
+    ../shared/src/frame_limit.cpp
 )
 
 if(WIN32)

@@ -101,6 +101,25 @@ void ApplyRemap(uint8_t* base, uint32_t state) {
   base[state + 7] = out_trig[1];
 }
 
+// The same remap for a menu key (XINPUT_KEYSTROKE VirtualKey at +0). False when the button is set to nothing.
+bool RemapKeystroke(uint8_t* base, uint32_t key) {
+  static const uint16_t kVk[12] = {0x5800, 0x5801, 0x5802, 0x5803, 0x5805, 0x5804,
+                                   0x5806, 0x5807, 0x5814, 0x5815, 0x5816, 0x5817};
+  const uint16_t vk = Load16(base, key);
+  for (int i = 0; i < 12; ++i) {
+    if (kVk[i] != vk) continue;
+    if (Remap(i) == kButtons[i].name) return true;
+    for (int j = 0; j < 12; ++j) {
+      if (Remap(i) == kButtons[j].name) {
+        Store16(base, key, kVk[j]);
+        return true;
+      }
+    }
+    return false;  // "none"
+  }
+  return true;  // the D pad and the sticks' directions are not remapped
+}
+
 void ApplyDeadzone(uint8_t* base, uint32_t x_addr, int percent) {
   if (percent <= 0) return;
   const float x = int16_t(Load16(base, x_addr)), y = int16_t(Load16(base, x_addr + 2));
@@ -148,6 +167,7 @@ void AfterGetState(uint8_t* base, uint32_t user, uint32_t state, bool ok) {
 namespace th {
 bool DevPadCaps(PPCContext& ctx, uint8_t* base);   // dev/dev_pad.cpp: the scripted test controller
 bool DevPadState(PPCContext& ctx, uint8_t* base);
+bool DevPadKeystroke(PPCContext& ctx, uint8_t* base);
 }  // namespace th
 REX_EXTERN(__imp__sub_82124668);
 REX_HOOK_RAW(sub_82124668) {
@@ -202,4 +222,16 @@ REX_HOOK_RAW(sub_82124688) {
   __imp__sub_82124688(ctx, base);
   store(vib, left);  // the game's own values back
   store(vib + 2, right);
+}
+
+// The menus read XInputGetKeystroke (sub_82124750: r3 user or 255, r4 flags, r5 keystroke), so menu keys follow the
+// button remapping too.
+REX_EXTERN(__imp__sub_82124750);
+REX_HOOK_RAW(sub_82124750) {
+  const uint32_t key = ctx.r5.u32;
+#if defined(TH_DEV_TOOLS)
+  if (!th::DevPadKeystroke(ctx, base))
+#endif
+    __imp__sub_82124750(ctx, base);
+  if (ctx.r3.u32 == 0 && key && !trials::RemapKeystroke(base, key)) ctx.r3.u64 = 0x10D2;  // ERROR_EMPTY
 }

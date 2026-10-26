@@ -88,7 +88,7 @@ void ReturnToLauncherTick(uint32_t user, bool connected, uint16_t buttons) {
   }
   if (user == 0) go = go || key.Seconds(EscHeld()) >= 1.5;
   if (!go || closing.exchange(true)) return;
-  REXLOG_INFO("BK: back to the launcher");
+  REXLOG_INFO("Trials: back to the launcher");
   CloseGame();
 }
 

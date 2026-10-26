@@ -167,20 +167,20 @@ struct Bind {
   const char* def;
 };
 const Bind kBinds[] = {
-    {"keybind_lstick_up", "Move forward", "W"},
-    {"keybind_lstick_down", "Move back", "S"},
-    {"keybind_lstick_left", "Move left", "A"},
-    {"keybind_lstick_right", "Move right", "D"},
-    {"keybind_rstick_up", "Look up", "Up"},
-    {"keybind_rstick_down", "Look down", "Down"},
-    {"keybind_rstick_left", "Look left", "Left"},
-    {"keybind_rstick_right", "Look right", "Right"},
+    {"keybind_lstick_up", "Left stick up", "W"},
+    {"keybind_lstick_down", "Left stick down", "S"},
+    {"keybind_lstick_left", "Lean back (left stick left)", "A"},
+    {"keybind_lstick_right", "Lean forward (left stick right)", "D"},
+    {"keybind_rstick_up", "Right stick up", "Up"},
+    {"keybind_rstick_down", "Right stick down", "Down"},
+    {"keybind_rstick_left", "Right stick left", "Left"},
+    {"keybind_rstick_right", "Right stick right", "Right"},
     {"keybind_a", "A button", "Semicolon,Space"},
     {"keybind_b", "B button", "Quote,Backspace"},
     {"keybind_x", "X button", "L"},
     {"keybind_y", "Y button", "P"},
-    {"keybind_left_trigger", "Left trigger", "Q,I"},
-    {"keybind_right_trigger", "Right trigger", "E,O"},
+    {"keybind_left_trigger", "Brake (left trigger)", "Q,I"},
+    {"keybind_right_trigger", "Gas (right trigger)", "E,O"},
     {"keybind_left_shoulder", "Left bumper", "1"},
     {"keybind_right_shoulder", "Right bumper", "3"},
     {"keybind_lstick_press", "Left stick click", "F"},
@@ -262,7 +262,8 @@ std::vector<Section> GameSections(App& app, int g) {
         st.Save();
       }
     }
-    // trials_frame_rate: each game draws at this rate in its fps_unlock.cpp (0 is no limit); 60 by default.
+    // trials_frame_rate: Trials HD draws at this rate in its fps_unlock.cpp, Evolution and Fusion pace to it in
+    // games/shared/src/frame_limit.cpp (0 is no limit); 60 by default.
     r.Choice("Frame rate", "60 is how the game ran on the Xbox 360. Higher is smoother: the physics keeps its 60 "
              "updates a second and each frame is drawn between them. No limit runs as fast as your PC allows.",
              "trials_frame_rate", "60",

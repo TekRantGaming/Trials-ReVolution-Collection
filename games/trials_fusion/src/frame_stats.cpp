@@ -15,6 +15,9 @@
 REXCVAR_DEFINE_BOOL(trials_log_fps, false, "Collection", "Log the game's frame rate once a second");
 
 namespace trials {
+
+void LimitFrame();  // frame_limit.cpp (shared)
+
 namespace {
 
 using Clock = std::chrono::steady_clock;
@@ -63,4 +66,5 @@ REX_EXTERN(__imp__sub_826CB050);
 REX_HOOK_RAW(sub_826CB050) {
   __imp__sub_826CB050(ctx, base);
   trials::CountFrame();
+  trials::LimitFrame();
 }

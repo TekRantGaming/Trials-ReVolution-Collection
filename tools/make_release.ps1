@@ -39,8 +39,12 @@ $parts = @(
 # The launcher reports the VERSION file's version: it must be this release's, and the launcher is rebuilt with it.
 $fileVersion = (Get-Content (Join-Path $root 'VERSION') -TotalCount 1).Trim()
 if ($fileVersion -ne $Version) { throw "VERSION says ${fileVersion}, set it to $Version first" }
-cmd /c "`"$(Join-Path $root 'build.bat')`"" | Out-Null
-if ($LASTEXITCODE -ne 0) { throw 'the launcher did not build' }
+# Visual Studio's vcvars64.bat can print a harmless error; only the exit code counts.
+$ErrorActionPreference = 'Continue'
+cmd /c "`"$(Join-Path $root 'build.bat')`" 2>&1" | Out-Null
+$built = $LASTEXITCODE
+$ErrorActionPreference = 'Stop'
+if ($built -ne 0) { throw 'the launcher did not build' }
 $Out = [IO.Path]::GetFullPath($Out)
 $top = Join-Path $Out "v$Version"
 if (Test-Path $top) { throw "$top already exists" }

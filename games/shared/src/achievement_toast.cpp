@@ -31,6 +31,7 @@
 #include <imgui.h>
 
 #include <rex/cvar.h>
+#include <rex/logging.h>
 #include <rex/ui/overlay/achievement_icon_cache.h>
 #include <rex/ui/overlay/achievement_notification.h>
 
@@ -149,6 +150,10 @@ class AchievementToast final : public rex::ui::AchievementNotificationDialog {
       if (queue_.front().started < 0) {
         queue_.front().started = now;
         PlayChime();
+#if defined(TH_DEV_TOOLS) || defined(TE_DEV_TOOLS) || defined(TF_DEV_TOOLS)
+        REXLOG_INFO("Trials dev toast: drawn, chime {} at {}%", REXCVAR_GET(trials_achievement_sound),
+                    REXCVAR_GET(trials_achievement_volume));
+#endif
       }
       if (now - queue_.front().started > kTotal) {
         queue_.pop_front();
