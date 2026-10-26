@@ -273,11 +273,16 @@ std::vector<Section> GameSections(App& app, int g) {
              "a screen of another shape.", "present_letterbox", true);
   }});
 
-  s.push_back({"Graphics", [&st](Rows& r) {
+  s.push_back({"Graphics", [&st, g](Rows& r) {
     // Upscaler and its mode as in King Kong Recompiled 1.9.x: the mode picks
     // the render scale from the screen when the game starts (render_quality.cpp in each game); with the upscaler
-    // off the render resolution is chosen directly.
-    if (r.Choice("Upscaler", "Scales the picture up to your screen. AMD FSR 1 works on any graphics card, NVIDIA NIS "
+    // off the render resolution is chosen directly. Evolution and Fusion always draw at their original resolution
+    // (their virtual textures break at a higher one), so they only have the upscaler.
+    if (std::string(Games()[g].id) != "trials_hd") {
+      r.Choice("Upscaler", "Scales the picture up to your screen. AMD FSR 1 works on any graphics card, NVIDIA NIS "
+               "suits NVIDIA cards. This game draws at its original resolution.", "present_effect", "bilinear",
+               {{"bilinear", "Off"}, {"fsr", "AMD FSR 1"}, {"nis", "NVIDIA NIS"}});
+    } else if (r.Choice("Upscaler", "Scales the picture up to your screen. AMD FSR 1 works on any graphics card, NVIDIA NIS "
                  "suits NVIDIA cards. Off draws at the render resolution you choose.", "present_effect", "bilinear",
                  {{"bilinear", "Off"}, {"fsr", "AMD FSR 1"}, {"nis", "NVIDIA NIS"}})) {
       const bool on = st.Get("present_effect", "bilinear") != "bilinear";
