@@ -1,0 +1,19 @@
+# Function starts the analyzer misses (Trials Fusion, default.xex v0.0.0.3). Addresses only.
+
+[functions]
+0x824996F8 = {}  # tail call target from 0x8249BAEC, not found by the analyzer
+0x82510908 = {}  # tail call target from 0x82514A70, not found by the analyzer
+0x827D3CE0 = {}  # tail call target from 0x827D3DC0, not found by the analyzer
+0x827D3D08 = {}  # tail call target from 0x827D3DB0, not found by the analyzer
+0x827D3D78 = {}  # tail call target from 0x827D3D90, not found by the analyzer
+0x82D4CAD4 = {}  # tail call target from 0x82D4CAE4, not found by the analyzer
+0x82D59FB8 = {}  # tail call target from 0x82D73F2C, not found by the analyzer
+0x82D5A030 = {}  # tail call target from 0x82D67024, not found by the analyzer
+0x82D5A0E0 = {}  # tail call target from 0x82D53870, not found by the analyzer
+0x82D5A0F0 = {}  # tail call target from 0x82D53868, not found by the analyzer
+0x82D5A100 = {}  # tail call target from 0x82D53860, not found by the analyzer
+0x82D5A110 = {}  # tail call target from 0x82D53858, not found by the analyzer
+0x82D653E8 = {}  # tail call target from 0x82D66EB4, not found by the analyzer
+0x82D6AC64 = {}  # tail call target from 0x82D6AC74, not found by the analyzer
+0x82D6AD7C = {}  # tail call target from 0x82D6AD8C, not found by the analyzer
+0x82B48D10 = {}  # branch target from 0x82B40010, after a call that never returns

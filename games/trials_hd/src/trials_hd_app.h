@@ -24,6 +24,7 @@ namespace trials {
 void InstallFpeGuard();                     // fpe_guard.cpp
 void ApplyPortDefaults();                   // port_defaults.cpp
 rex::ui::FrameStats GuestFrameStats();      // frame_stats.cpp
+void ApplyFrameRate();                      // frame_stats.cpp
 void ApplyRenderQuality(rex::ui::Window* window);  // render_quality.cpp
 std::unique_ptr<rex::ui::AchievementNotificationDialog> CreateAchievementToast(
     rex::ui::ImGuiDrawer* drawer, rex::ui::ImmediateDrawer* immediate, rex::Runtime* runtime);  // achievement_toast.cpp
@@ -81,6 +82,7 @@ class TrialsHdApp : public rex::ReXApp {
     trials::InstallFpeGuard();  // after the runtime's own signal handlers
     trials::ApplyPortDefaults();
     SetGuestFrameStats(trials::GuestFrameStats);  // the F3 overlay's frame rate
+    trials::ApplyFrameRate();
     trials::ExportAchievements(runtime(), game_data_root());
 #if defined(TH_DEV_TOOLS)
     th::StartDevTools(runtime(), app_context(), PPCImageConfig.image_base, PPCImageConfig.image_size);

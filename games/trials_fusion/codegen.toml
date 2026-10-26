@@ -1,0 +1,18 @@
+# Codegen settings for Trials Fusion (default.xex, title 58411401, v0.0.0.3).
+# Addresses only: no game code lives in this repository.
+
+# MSVC CRT setjmp/longjmp, mapped so codegen emits host setjmp/longjmp at their call sites (as Trials HD Recompiled
+# does for Trials HD): recompiled as is, longjmp restores guest r1/r31/lr while the host stack stays put. Found by
+# shape: setjmp saves r14-r31 and f14-f31 into the buffer in r3; longjmp restores f14-f31 and unwinds with r4.
+setjmp_address = 0x82BC4F60
+longjmp_address = 0x82BC5520
+
+# The game's XAPI fiber functions (its job system runs on fibers), replaced by the SDK's host fibers: recompiled,
+# SwitchToFiber saves and loads guest registers while the host stack stays put. Found by shape: each uses the
+# current thread's fiber pointer (KTHREAD +356); the errors 0x500 and 0x501 and the 2640 byte fiber block match.
+[rexcrt]
+ConvertThreadToFiber = 0x82B3FDF0
+ConvertFiberToThread = 0x82B3FE80
+CreateFiber = 0x82B3FED0
+DeleteFiber = 0x82B3FFB0
+SwitchToFiber = 0x82B48D10

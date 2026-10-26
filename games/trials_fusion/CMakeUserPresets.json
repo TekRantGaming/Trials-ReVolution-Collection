@@ -1,0 +1,34 @@
+{
+    "version": 6,
+    "configurePresets": [
+        {
+            "name": "user-env",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_PREFIX_PATH": "${sourceDir}/../../tools/rexglue/win-amd64"
+            }
+        },
+        {
+            "name": "user-env-linux",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_PREFIX_PATH": "${sourceDir}/../../tools/rexglue/linux-amd64"
+            }
+        },
+        { "name": "tf-debug",          "inherits": ["win-amd64-debug",          "user-env"] },
+        { "name": "tf-release",        "inherits": ["win-amd64-release",        "user-env"] },
+        { "name": "tf-relwithdebinfo", "inherits": ["win-amd64-relwithdebinfo", "user-env"] },
+        { "name": "tf-linux-release",  "inherits": ["linux-amd64-release",      "user-env-linux"] },
+        { "name": "tf-dev",            "inherits": ["tf-release"], "cacheVariables": { "TF_DEV_TOOLS": "ON" } }
+    ],
+    "buildPresets": [
+        { "name": "tf-debug",          "configurePreset": "tf-debug" },
+        { "name": "tf-release",        "configurePreset": "tf-release" },
+        { "name": "tf-relwithdebinfo", "configurePreset": "tf-relwithdebinfo" },
+        { "name": "tf-linux-release",  "configurePreset": "tf-linux-release" },
+        { "name": "tf-dev",            "configurePreset": "tf-dev" }
+    ]
+}
+
+
+

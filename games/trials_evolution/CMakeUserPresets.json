@@ -1,0 +1,34 @@
+{
+    "version": 6,
+    "configurePresets": [
+        {
+            "name": "user-env",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_PREFIX_PATH": "${sourceDir}/../../tools/rexglue/win-amd64"
+            }
+        },
+        {
+            "name": "user-env-linux",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_PREFIX_PATH": "${sourceDir}/../../tools/rexglue/linux-amd64"
+            }
+        },
+        { "name": "te-debug",          "inherits": ["win-amd64-debug",          "user-env"] },
+        { "name": "te-release",        "inherits": ["win-amd64-release",        "user-env"] },
+        { "name": "te-relwithdebinfo", "inherits": ["win-amd64-relwithdebinfo", "user-env"] },
+        { "name": "te-linux-release",  "inherits": ["linux-amd64-release",      "user-env-linux"] },
+        { "name": "te-dev",            "inherits": ["te-release"], "cacheVariables": { "TE_DEV_TOOLS": "ON" } }
+    ],
+    "buildPresets": [
+        { "name": "te-debug",          "configurePreset": "te-debug" },
+        { "name": "te-release",        "configurePreset": "te-release" },
+        { "name": "te-relwithdebinfo", "configurePreset": "te-relwithdebinfo" },
+        { "name": "te-linux-release",  "configurePreset": "te-linux-release" },
+        { "name": "te-dev",            "configurePreset": "te-dev" }
+    ]
+}
+
+
+

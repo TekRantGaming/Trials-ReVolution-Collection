@@ -49,6 +49,15 @@ void CountFrame() {
   w.start = w.last = now;
 }
 
+// With a frame rate other than 60 the game's main loop is replaced (fps_unlock.cpp): the guest vertical blank
+// becomes a fast timer (guest vsync off) so it no longer holds frames back, and each frame is one submission.
+void ApplyFrameRate() {
+  if (rex::cvar::GetFlagByName("trials_frame_rate") == "60") return;
+  rex::cvar::SetFlagByName("vsync", "false");
+  rex::cvar::SetFlagByName("d3d12_submit_on_primary_buffer_end", "false");
+  rex::cvar::SetFlagByName("vulkan_submit_on_primary_buffer_end", "false");
+}
+
 rex::ui::FrameStats GuestFrameStats() {
   rex::ui::FrameStats s;
   s.fps = g_fps;

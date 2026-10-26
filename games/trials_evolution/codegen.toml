@@ -1,0 +1,8 @@
+# Codegen settings for Trials Evolution (default.xex, title 58410AAD, v0.0.0.3).
+# Addresses only: no game code lives in this repository.
+
+# MSVC CRT setjmp/longjmp, mapped so codegen emits host setjmp/longjmp at their call sites (as Trials HD Recompiled
+# does for Trials HD): recompiled as is, longjmp restores guest r1/r31/lr while the host stack stays put. Found by
+# shape: setjmp saves r14-r31 and f14-f31 into the buffer in r3; longjmp restores f14-f31 and unwinds with r4.
+setjmp_address = 0x829BE6F0
+longjmp_address = 0x829BE3D0

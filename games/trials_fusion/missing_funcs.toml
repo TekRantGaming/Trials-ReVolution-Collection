@@ -1,0 +1,243 @@
+# Functions referenced only indirectly (Trials Fusion, default.xex v0.0.0.3). Addresses only.
+# From FindMissingFuncs.cs (from the Burger King ports); the import thunks at the end of .text are pruned.
+# Pruned: exception handler pieces (referenced from the EH tables, they branch back into their parent).
+[functions]
+0x821D4578 = { end = 0x821D4598 }  # lis/addi @0x824CFAB4
+0x821D5C00 = { end = 0x821D5C10 }  # data ptr @0x82001C4C
+0x821F6408 = { end = 0x821F6428 }  # data ptr @0x8200307C
+0x8221B8C8 = { end = 0x8221B8E4 }  # data ptr @0x82002098
+0x82241020 = { end = 0x82241028 }  # data ptr @0x8200278C
+0x82267040 = { end = 0x8226705C }  # data ptr @0x82003934
+0x8227CB48 = { end = 0x8227CB54 }  # data ptr @0x820026A8
+0x823105A0 = { end = 0x82310610 }  # lis/addi @0x825CDBD8
+0x82319E98 = { end = 0x82319EA8 }  # lis/addi @0x823A0D04
+0x82319EA8 = { end = 0x82319EB8 }  # lis/addi @0x823A14AC
+0x82319EB8 = { end = 0x82319EC8 }  # lis/addi @0x823A0FDC
+0x82319EC8 = { end = 0x82319ED8 }  # lis/addi @0x823A2384
+0x82319ED8 = { end = 0x82319EE8 }  # lis/addi @0x823A112C
+0x82319EE8 = { end = 0x82319EF8 }  # lis/addi @0x823A127C
+0x82319EF8 = { end = 0x82319F08 }  # lis/addi @0x823A158C
+0x82319F08 = { end = 0x82319F18 }  # lis/addi @0x823A4EBC
+0x82319F18 = { end = 0x82319F28 }  # lis/addi @0x823A2044
+0x82319F28 = { end = 0x82319F38 }  # lis/addi @0x823A2194
+0x82319F38 = { end = 0x82319F48 }  # lis/addi @0x823A0C5C
+0x82319F48 = { end = 0x82319F58 }  # lis/addi @0x823A22AC
+0x82319F58 = { end = 0x82319F68 }  # lis/addi @0x823A0B0C
+0x82319F68 = { end = 0x82319F78 }  # lis/addi @0x823A2354
+0x82319F78 = { end = 0x82319F88 }  # lis/addi @0x823A0EFC
+0x82319F88 = { end = 0x82319F98 }  # lis/addi @0x823A01BC
+0x82319F98 = { end = 0x82319FA8 }  # lis/addi @0x823A14E0
+0x82319FA8 = { end = 0x82319FB8 }  # lis/addi @0x823A1084
+0x82319FB8 = { end = 0x82319FC8 }  # lis/addi @0x823A13CC
+0x82319FC8 = { end = 0x82319FD8 }  # lis/addi @0x823A0340
+0x82319FD8 = { end = 0x82319FE8 }  # lis/addi @0x823A12EC
+0x82319FE8 = { end = 0x82319FF8 }  # lis/addi @0x823A1D2C
+0x82319FF8 = { end = 0x8231A008 }  # lis/addi @0x823A4E44
+0x8231A008 = { end = 0x8231A018 }  # lis/addi @0x823A207C
+0x8231A018 = { end = 0x8231A028 }  # lis/addi @0x823A21CC
+0x8231A028 = { end = 0x8231A038 }  # lis/addi @0x823A09F4
+0x8231A038 = { end = 0x8231A048 }  # lis/addi @0x823A223C
+0x8231A048 = { end = 0x8231A058 }  # lis/addi @0x823A0B44
+0x8231A058 = { end = 0x8231A068 }  # lis/addi @0x823A1404
+0x8231A068 = { end = 0x8231A078 }  # lis/addi @0x823A0F6C
+0x8231A078 = { end = 0x8231A088 }  # lis/addi @0x823A01F4
+0x8231A088 = { end = 0x8231A098 }  # lis/addi @0x823A151C
+0x8231A098 = { end = 0x8231A0A8 }  # lis/addi @0x823A10BC
+0x8231A0A8 = { end = 0x8231A0B8 }  # lis/addi @0x823A1394
+0x8231A0B8 = { end = 0x8231A0C8 }  # lis/addi @0x823A4584
+0x8231A0C8 = { end = 0x8231A0D8 }  # lis/addi @0x823A1DA4
+0x8231A0D8 = { end = 0x8231A0E8 }  # lis/addi @0x823A4ED4
+0x8231A0E8 = { end = 0x8231A0F8 }  # lis/addi @0x823A20B4
+0x8231A0F8 = { end = 0x8231A108 }  # lis/addi @0x823A2204
+0x8231A108 = { end = 0x8231A118 }  # lis/addi @0x823A0A64
+0x8231A118 = { end = 0x8231A128 }  # lis/addi @0x823A22E4
+0x8231A128 = { end = 0x8231A138 }  # lis/addi @0x823A0A9C
+0x8231A138 = { end = 0x8231A148 }  # lis/addi @0x823A143C
+0x8231A148 = { end = 0x8231A158 }  # lis/addi @0x823A0FA0
+0x8231A158 = { end = 0x8231A168 }  # lis/addi @0x823A1554
+0x8231A168 = { end = 0x8231A178 }  # lis/addi @0x823A10F4
+0x8231A178 = { end = 0x8231A188 }  # lis/addi @0x823A1244
+0x8231A188 = { end = 0x8231A198 }  # lis/addi @0x823A459C
+0x8231A198 = { end = 0x8231A1A8 }  # lis/addi @0x823A4EA4
+0x8231A1A8 = { end = 0x8231A1B8 }  # lis/addi @0x823A1FD4
+0x8231A1B8 = { end = 0x8231A1C8 }  # lis/addi @0x823A2124
+0x8231A1C8 = { end = 0x8231A1D8 }  # lis/addi @0x823A0BB4
+0x8231A1D8 = { end = 0x8231A1E8 }  # lis/addi @0x823A2274
+0x8231A1E8 = { end = 0x8231A1F8 }  # lis/addi @0x823A0AD4
+0x82509008 = { end = 0x82509018 }  # data ptr @0x82023A60
+0x8250E5D0 = { end = 0x8250E5F0 }  # data ptr @0x82001C44
+0x8255FC20 = { end = 0x8255FC2C }  # lis/addi @0x8268F138
+0x8260F388 = { end = 0x8260F398 }  # lis/addi @0x825F8814
+0x82671268 = { end = 0x82671278 }  # lis/addi @0x82678C74
+0x82671278 = { end = 0x82671288 }  # lis/addi @0x82679358
+0x82679798 = { end = 0x826797A8 }  # lis/addi @0x826862BC
+0x826797A8 = { end = 0x826797B8 }  # lis/addi @0x826862C4
+0x826797B8 = { end = 0x826797C8 }  # lis/addi @0x82686294
+0x826797C8 = { end = 0x826797D8 }  # lis/addi @0x826862B8
+0x826797D8 = { end = 0x826797E8 }  # lis/addi @0x82686290
+0x826797E8 = { end = 0x826797F8 }  # lis/addi @0x826862C0
+0x82699A68 = { end = 0x82699A78 }  # lis/addi @0x826AA284
+0x826EE360 = { end = 0x826EE404 }  # data ptr @0x8205F43C
+0x827091D0 = { end = 0x82709358 }  # data ptr @0x8205FD28
+0x82731F18 = { end = 0x82731F2C }  # data ptr @0x82060FC8
+0x82731F38 = { end = 0x82731F44 }  # data ptr @0x82060F78
+0x82731F68 = { end = 0x82731F78 }  # data ptr @0x82061094
+0x82732B90 = { end = 0x82732B98 }  # data ptr @0x82001A68
+0x82736710 = { end = 0x82736728 }  # data ptr @0x82061798
+0x82736728 = { end = 0x82736740 }  # data ptr @0x820617A0
+0x82736740 = { end = 0x82736758 }  # data ptr @0x8206179C
+0x82736758 = { end = 0x82736770 }  # data ptr @0x820617A4
+0x82736848 = { end = 0x82736860 }  # data ptr @0x820617B8
+0x82736860 = { end = 0x82736878 }  # data ptr @0x820617C4
+0x827643E0 = { end = 0x827643E8 }  # data ptr @0x82063BD0
+0x827D3D50 = { end = 0x827D3D64 }  # data ptr @0x82068438
+0x827F3CC8 = { end = 0x827F3CF4 }  # data ptr @0x820034C8
+0x827F5860 = { end = 0x827F589C }  # data ptr @0x8200236C
+0x8288AAB0 = { end = 0x8288AAC4 }  # data ptr @0x82FDD680
+0x82930108 = { end = 0x82930118 }  # lis/addi @0x823A030C
+0x82930118 = { end = 0x82930128 }  # lis/addi @0x823A0984
+0x82930128 = { end = 0x82930138 }  # lis/addi @0x823A4E14
+0x82930138 = { end = 0x82930148 }  # lis/addi @0x823A0298
+0x82930148 = { end = 0x82930158 }  # lis/addi @0x823A2CFC
+0x82930158 = { end = 0x82930168 }  # lis/addi @0x823A09BC
+0x82930168 = { end = 0x82930178 }  # lis/addi @0x823A0A2C
+0x82930178 = { end = 0x82930188 }  # lis/addi @0x823A03FC
+0x82930188 = { end = 0x82930198 }  # lis/addi @0x823A0604
+0x82930198 = { end = 0x829301A8 }  # lis/addi @0x823A4DE4
+0x829301A8 = { end = 0x829301B8 }  # lis/addi @0x823A4E8C
+0x829301B8 = { end = 0x829301C8 }  # lis/addi @0x823A022C
+0x829301C8 = { end = 0x829301D8 }  # lis/addi @0x823A02D4
+0x829301D8 = { end = 0x829301E8 }  # lis/addi @0x823A063C
+0x829301E8 = { end = 0x829301F8 }  # lis/addi @0x823A4DFC
+0x829394F8 = { end = 0x829394FC }  # data ptr @0x82074CD8
+0x8293D7D8 = { end = 0x8293D7DC }  # data ptr @0x82074FE0
+0x82946FB8 = { end = 0x82946FF0 }  # data ptr @0x82002F30
+0x829719B8 = { end = 0x829719C4 }  # data ptr @0x8207A0EC
+0x82971E40 = { end = 0x82971E48 }  # data ptr @0x8207A1CC
+0x829F6EC0 = { end = 0x829F6EC8 }  # data ptr @0x8208FB90
+0x829FE208 = { end = 0x829FE210 }  # lis/addi @0x829FE274
+0x829FE8D0 = { end = 0x829FE8E0 }  # lis/addi @0x829F76A4
+0x82A00D48 = { end = 0x82A00D58 }  # data ptr @0x82091568
+0x82A5D648 = { end = 0x82A5D668 }  # data ptr @0x82002828
+0x82A72F00 = { end = 0x82A72F04 }  # data ptr @0x820ADB28
+0x82A77698 = { end = 0x82A776A0 }  # data ptr @0x820AE054
+0x82AF1E88 = { end = 0x82AF1EA0 }  # data ptr @0x820ADC3C
+0x82B368F0 = { end = 0x82B36928 }  # lis/addi @0x82B36FE4
+0x82B4B358 = { end = 0x82B4B87C }  # data ptr @0x8216AE08
+0x82B4CB2C = { end = 0x82B4CC94 }  # data ptr @0x8216AE50
+0x82B4CCA4 = { end = 0x82B4CCC8 }  # data ptr @0x8216AE60
+0x82B54920 = { end = 0x82B54954 }  # data ptr @0x8216AEA0
+0x82B56DF8 = { end = 0x82B56E00 }  # data ptr @0x820B2890
+0x82B59248 = { end = 0x82B59250 }  # data ptr @0x820B2964
+0x82B59250 = { end = 0x82B59258 }  # data ptr @0x820B294C
+0x82B59258 = { end = 0x82B59260 }  # data ptr @0x820B298C
+0x82B59268 = { end = 0x82B59270 }  # data ptr @0x820B2974
+0x82B59270 = { end = 0x82B59278 }  # data ptr @0x820B2988
+0x82B59278 = { end = 0x82B592D0 }  # data ptr @0x820B29AC
+0x82B592D0 = { end = 0x82B592D8 }  # data ptr @0x820B2940
+0x82B5E5B0 = { end = 0x82B5E5B8 }  # data ptr @0x820B2960
+0x82B5E5B8 = { end = 0x82B5E5C0 }  # data ptr @0x820B2CB0
+0x82B5E5C0 = { end = 0x82B5E5C8 }  # data ptr @0x820B2980
+0x82B5E5C8 = { end = 0x82B5E6BC }  # data ptr @0x820B2D1C
+0x82B5F960 = { end = 0x82B5F968 }  # data ptr @0x820B2948
+0x82B5F968 = { end = 0x82B5F970 }  # data ptr @0x820B2CE0
+0x82B5F970 = { end = 0x82B5F978 }  # data ptr @0x820B295C
+0x82B5F978 = { end = 0x82B5F980 }  # data ptr @0x820B2958
+0x82B5F980 = { end = 0x82B5F988 }  # data ptr @0x820B297C
+0x82B5F988 = { end = 0x82B5F990 }  # data ptr @0x820B2984
+0x82B5F990 = { end = 0x82B5F998 }  # data ptr @0x820B2954
+0x82B5F998 = { end = 0x82B5F9A0 }  # data ptr @0x820B2950
+0x82B5F9A0 = { end = 0x82B5FAA0 }  # data ptr @0x820B2D94
+0x82B60160 = { end = 0x82B60178 }  # data ptr @0x820B2E9C
+0x82B60ED8 = { end = 0x82B60EE0 }  # data ptr @0x820B2E34
+0x82B61C08 = { end = 0x82B61C10 }  # data ptr @0x820B2EF4
+0x82B64B88 = { end = 0x82B64BB4 }  # data ptr @0x820B30D0
+0x82B64E40 = { end = 0x82B64E48 }  # data ptr @0x820B3090
+0x82B6E7E8 = { end = 0x82B6E808 }  # data ptr @0x8216AEB0
+0x82B711F8 = { end = 0x82B712EC }  # data ptr @0x8216AED0
+0x82B72998 = { end = 0x82B729A0 }  # data ptr @0x820B6ECC
+0x82B729A8 = { end = 0x82B729B0 }  # data ptr @0x820B6F40
+0x82B742B8 = { end = 0x82B742C0 }  # data ptr @0x820B6FE8
+0x82B742D8 = { end = 0x82B742E0 }  # data ptr @0x820B6EE8
+0x82BBDD40 = { end = 0x82BBDD48 }  # lis/addi @0x82BBDD50
+0x82BC21B8 = { end = 0x82BC21D8 }  # lis/addi @0x82BC21F0
+0x82BCBABC = { end = 0x82BCBAF0 }  # data ptr @0x8216B120
+0x82BD16A0 = { end = 0x82BD16B8 }  # data ptr @0x8216B2B0
+0x82BD1A0C = { end = 0x82BD1A24 }  # data ptr @0x8216B2C8
+0x82BD1B4C = { end = 0x82BD1B58 }  # data ptr @0x8216B2E0
+0x82BD222C = { end = 0x82BD22E8 }  # data ptr @0x8216B2F8
+0x82C3CD68 = { end = 0x82C3CD70 }  # data ptr @0x820E6D74
+0x82C51550 = { end = 0x82C51564 }  # data ptr @0x820E875C
+0x82D05D80 = { end = 0x82D05D94 }  # data ptr @0x820EEA64
+0x82D23FA0 = { end = 0x82D23FA8 }  # data ptr @0x820EDF48
+0x82D23FA8 = { end = 0x82D23FB0 }  # data ptr @0x820EDF50
+0x82D3C358 = { end = 0x82D3C360 }  # data ptr @0x820030F0
+0x82D432B0 = { end = 0x82D432CC }  # data ptr @0x82003E1C
+0x82D4CA60 = { end = 0x82D4CAD4 }  # data ptr @0x820F0008
+0x82D5C098 = { end = 0x82D5C0A0 }  # data ptr @0x820F0720
+0x82D5C0B8 = { end = 0x82D5C0C0 }  # data ptr @0x820F0734
+0x82D5C0D8 = { end = 0x82D5C0E0 }  # data ptr @0x820F0748
+0x82D5C0F8 = { end = 0x82D5C100 }  # data ptr @0x820F0758
+0x82D5C118 = { end = 0x82D5C120 }  # data ptr @0x820F0768
+0x82D5C168 = { end = 0x82D5C170 }  # data ptr @0x820F0798
+0x82D6ABF8 = { end = 0x82D6AC64 }  # data ptr @0x82003CB8
+0x82D6AD10 = { end = 0x82D6AD7C }  # data ptr @0x82003D18
+0x82D74DC0 = { end = 0x82D74DC8 }  # data ptr @0x820F11C4
+0x82D79A70 = { end = 0x82D79A78 }  # data ptr @0x820F1394
+0x82F29C48 = { end = 0x82F29C6C }  # data ptr @0x82161CEC
+0x82F36AC8 = { end = 0x82F36AE0 }  # data ptr @0x82163EFC
+0x82F36AE0 = { end = 0x82F36AF8 }  # data ptr @0x82163F00
+0x82F36AF8 = { end = 0x82F36B08 }  # data ptr @0x821630B8
+0x82F3AC80 = { end = 0x82F3ACE0 }  # lis/addi @0x82F3AD48
+0x82F564E8 = { end = 0x82F564F8 }  # data ptr @0x82004778
+
+# Referenced from data but after a call that never returns (devtools after_call.py), so FindMissingFuncs skipped them.
+0x821ED798 = {}  # data ptr @0x82002808, after a call
+0x825D7338 = {}  # data ptr @0x82038618, after a call
+0x825FE970 = {}  # data ptr @0x8203A33C, after a call
+0x825FEFB0 = {}  # data ptr @0x8203A3E0, after a call
+0x82613ED0 = {}  # data ptr @0x8203BD54, after a call
+0x82618160 = {}  # data ptr @0x8203BE84, after a call
+0x826183E0 = {}  # data ptr @0x8203BE9C, after a call
+0x82618E28 = {}  # data ptr @0x8203BCB0, after a call
+0x82618EC0 = {}  # data ptr @0x8203BCE0, after a call
+0x826283D8 = {}  # data ptr @0x8203C5EC, after a call
+0x826340C0 = {}  # data ptr @0x8203D49C, after a call
+0x82635A38 = {}  # data ptr @0x8203D5B8, after a call
+0x8264B970 = {}  # data ptr @0x8203E860, after a call
+0x82661C98 = {}  # data ptr @0x8203F684, after a call
+0x82661E48 = {}  # data ptr @0x8203F69C, after a call
+0x82664890 = {}  # data ptr @0x8203F7BC, after a call
+0x8267D3A8 = {}  # data ptr @0x82040538, after a call
+0x82680A88 = {}  # data ptr @0x82040598, after a call
+0x8268DB58 = {}  # data ptr @0x82040D70, after a call
+0x826DF9A0 = {}  # data ptr @0x8216ADA0, after a call
+0x827A1C38 = {}  # data ptr @0x82066F78, after a call
+0x827A1CD8 = {}  # data ptr @0x820671E8, after a call
+0x827A2020 = {}  # data ptr @0x820670C8, after a call
+0x82803014 = {}  # data ptr @0x8216ADB8, after a call
+0x828A28E0 = {}  # data ptr @0x8206E8CC, after a call
+0x828A3060 = {}  # data ptr @0x8206E8C8, after a call
+0x828C15B8 = {}  # data ptr @0x8206F4EC, after a call
+0x828E8E70 = {}  # data ptr @0x8204DA94, after a call
+0x82A30030 = {}  # data ptr @0x82FAC304, after a call
+0x82A3F090 = {}  # data ptr @0x820D75C4, after a call
+0x82AAFFC4 = {}  # data ptr @0x82FB3940, after a call
+0x82B4CC94 = {}  # data ptr @0x8216AE58, after a call
+0x82B4CFF8 = {}  # data ptr @0x8216AE80, after a call
+0x82B54910 = {}  # data ptr @0x8216AE98, after a call
+0x82B711E8 = {}  # data ptr @0x8216AEC8, after a call
+0x82BC0CBC = {}  # data ptr @0x8216AEF8, after a call
+0x82BC1090 = {}  # data ptr @0x8216AF10, after a call
+0x82BC1BA4 = {}  # data ptr @0x8216AF28, after a call
+0x82BC5DA0 = {}  # data ptr @0x8216B040, after a call
+0x82BC80A8 = {}  # data ptr @0x8216B0A0, after a call
+0x82BCBC7C = {}  # data ptr @0x8216B130, after a call
+0x82BD1518 = {}  # data ptr @0x8216B280, after a call
+0x82BD19FC = {}  # data ptr @0x8216B2C0, after a call
+0x82CAFF44 = {}  # data ptr @0x82FB3C78, after a call
+0x82CAFF84 = {}  # data ptr @0x82FB393C, after a call
+0x82D18C20 = {}  # data ptr @0x832C4300, after a call
+0x82EFBE88 = {}  # data ptr @0x8216B3D8, after a call
+0x82EFE18C = {}  # data ptr @0x8216B3F0, after a call
+0x82F64B20 = {}  # data ptr @0x8216B460, after a call

@@ -1,0 +1,13 @@
+# Function starts the analyzer misses (Trials Evolution, default.xex v0.0.0.3). Addresses only.
+
+[functions]
+0x8222D1A0 = {}  # tail call target from 0x8222D1C8, not found by the analyzer
+0x824DB600 = {}  # tail call target from 0x824DECB8, not found by the analyzer
+0x824DB620 = {}  # tail call target from 0x824DECC8, not found by the analyzer
+0x8265E058 = {}  # tail call target from 0x8265E138, not found by the analyzer
+0x8265E080 = {}  # tail call target from 0x8265E128, not found by the analyzer
+0x8265E0F0 = {}  # tail call target from 0x8265E108, not found by the analyzer
+0x826ECF64 = {}  # tail call target from 0x826ECF74, not found by the analyzer
+0x827795AC = {}  # tail call target from 0x827795BC, not found by the analyzer
+0x827796C4 = {}  # tail call target from 0x827796D4, not found by the analyzer
+0x827F6830 = {}  # tail call target from 0x827F7338, not found by the analyzer

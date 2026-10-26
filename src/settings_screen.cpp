@@ -262,9 +262,10 @@ std::vector<Section> GameSections(App& app, int g) {
         st.Save();
       }
     }
-    // trials_frame_rate: each game paces itself to this in its frame_stats.cpp (0 is no limit); 60 by default.
-    r.Choice("Frame rate", "30 is how the game ran on the Xbox 360. Higher is smoother and the game still runs at the "
-             "right speed. No limit runs as fast as your PC allows.", "trials_frame_rate", "60",
+    // trials_frame_rate: each game draws at this rate in its fps_unlock.cpp (0 is no limit); 60 by default.
+    r.Choice("Frame rate", "60 is how the game ran on the Xbox 360. Higher is smoother: the physics keeps its 60 "
+             "updates a second and each frame is drawn between them. No limit runs as fast as your PC allows.",
+             "trials_frame_rate", "60",
              {{"30", "30"}, {"60", "60"}, {"120", "120"}, {"144", "144"}, {"165", "165"}, {"240", "240"},
               {"0", "No limit"}});
     r.Toggle("Keep the original shape", "Keeps the picture 16:9 with black bars instead of stretching it to fill "
