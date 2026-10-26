@@ -1,0 +1,90 @@
+From 75a2df5ba534bbce5b7019b54305985bcdbe360d Mon Sep 17 00:00:00 2001
+From: TekRantGaming <craigferels896@gmail.com>
+Date: Mon, 26 Oct 2026 18:56:24 +0000
+Subject: [PATCH 3/3] D3D12: memory export at an even resolution scale reads
+ interpolants at the guest pixel center; scaled readback size limit
+
+At 2x (any even scale) the host pixel that exports is half a host pixel off the guest pixel center, so texture
+coordinates were too: Trials Evolution and Trials Fusion copy virtual texture pages that way and the pages came out as
+noise. readback_resolve_scaled_max_kb reads back only small resolves when resolution scaled (each is downscaled
+first, which held those games at 15 to 35 FPS at 2x).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/graphics/d3d12/command_processor.cpp      | 10 ++++++
+ .../pipeline/shader/dxbc_translator.cpp       | 31 +++++++++++++++++++
+ 2 files changed, 41 insertions(+)
+
+diff --git a/src/graphics/d3d12/command_processor.cpp b/src/graphics/d3d12/command_processor.cpp
+index a22e8d5..e28a4ef 100644
+--- a/src/graphics/d3d12/command_processor.cpp
++++ b/src/graphics/d3d12/command_processor.cpp
+@@ -45,6 +45,12 @@ REXCVAR_DEFINE_BOOL(d3d12_readback_resolve, false, "GPU/D3D12",
+                     "Read render-to-texture results on the CPU")
+     .lifecycle(rex::cvar::Lifecycle::kHotReload);
+ 
++REXCVAR_DEFINE_INT32(readback_resolve_scaled_max_kb, 0, "GPU",
++                     "With resolution scaling, read back only resolves up to this many KB (0: all). Each scaled "
++                     "readback is downscaled first, which is costly; games that read only small results on the CPU "
++                     "can skip the rest")
++    .lifecycle(rex::cvar::Lifecycle::kHotReload);
++
+ REXCVAR_DEFINE_BOOL(d3d12_submit_on_primary_buffer_end, true, "GPU/D3D12",
+                     "Submit command list when PM4 primary buffer ends")
+     .lifecycle(rex::cvar::Lifecycle::kHotReload);
+@@ -3059,6 +3065,10 @@ bool D3D12CommandProcessor::IssueCopy_ReadbackResolvePath() {
+   if (!written_length) {
+     return true;
+   }
++  const int32_t max_kb = REXCVAR_GET(readback_resolve_scaled_max_kb);
++  if (max_kb > 0 && texture_cache_->IsDrawResolutionScaled() && written_length > uint32_t(max_kb) * 1024) {
++    return true;
++  }
+ 
+   if (!memory_->TranslatePhysical(written_address)) {
+     return true;
+diff --git a/src/graphics/pipeline/shader/dxbc_translator.cpp b/src/graphics/pipeline/shader/dxbc_translator.cpp
+index 7b34a20..e098378 100644
+--- a/src/graphics/pipeline/shader/dxbc_translator.cpp
++++ b/src/graphics/pipeline/shader/dxbc_translator.cpp
+@@ -641,6 +641,37 @@ void DxbcShaderTranslator::StartPixelShader() {
+                  : dxbc::Src::LF(0.0f));
+   }
+ 
++  // Memory export from a resolution scaled pixel shader is done by one host pixel per guest pixel (below). With an
++  // even scale no host pixel is at the guest pixel's center (at 2x the exporting one is a quarter of a guest pixel
++  // off), so interpolants such as texture coordinates would be off too: Trials Evolution and Trials Fusion copy
++  // virtual texture pages by fetching texels half a texel either side of the guest pixel center, and the copies
++  // came out shifted by half a source texel, as noise. Move the interpolants to the guest pixel center: half a host
++  // pixel back along each even axis, using the fine derivatives (exact for linear interpolants).
++  const bool memexport_even_x = draw_resolution_scale_x_ > 1 && !(draw_resolution_scale_x_ & 1);
++  const bool memexport_even_y = draw_resolution_scale_y_ > 1 && !(draw_resolution_scale_y_ & 1);
++  if (current_shader().memexport_eM_written() && (memexport_even_x || memexport_even_y)) {
++    uint32_t deriv_temp = PushSystemTemp();
++    for (uint32_t i = 0; i < register_count() && i < xenos::kMaxInterpolators; ++i) {
++      if (i == param_gen_interpolator || !(interpolator_mask & (UINT32_C(1) << i))) {
++        continue;
++      }
++      const dxbc::Src in_src(dxbc::Src::V1D(in_reg_ps_interpolators_ +
++                                            rex::bit_count(interpolator_mask & ((UINT32_C(1) << i) - 1))));
++      const dxbc::Dest reg_dest(uses_register_dynamic_addressing ? dxbc::Dest::X(0, i) : dxbc::Dest::R(i));
++      const dxbc::Src reg_src(uses_register_dynamic_addressing ? dxbc::Src::X(0, i) : dxbc::Src::R(i));
++      if (memexport_even_x) {
++        a_.OpDerivRTXFine(dxbc::Dest::R(deriv_temp), in_src);
++        a_.OpMAd(reg_dest, dxbc::Src::R(deriv_temp), dxbc::Src::LF(-0.5f), reg_src);
++      }
++      if (memexport_even_y) {
++        a_.OpDerivRTYFine(dxbc::Dest::R(deriv_temp), in_src);
++        a_.OpMAd(reg_dest, dxbc::Src::R(deriv_temp), dxbc::Src::LF(-0.5f), reg_src);
++      }
++    }
++    // Release deriv_temp.
++    PopSystemTemp();
++  }
++
+   // Write the pixel parameters to the specified interpolator register
+   // (PsParamGen). The negate modified in DXBC flips the sign bit, so it can be
+   // used to write the flags.
+-- 
+2.55.0.windows.5
+

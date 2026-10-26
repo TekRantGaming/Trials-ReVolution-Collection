@@ -25,7 +25,7 @@ void InstallFpeGuard();                     // fpe_guard.cpp
 void ApplyPortDefaults();                   // port_defaults.cpp
 rex::ui::FrameStats GuestFrameStats();      // frame_stats.cpp
 void ApplyFrameRate();                      // frame_limit.cpp (shared)
-void ApplyRenderQuality(rex::ui::Window* window, bool can_scale);  // render_quality.cpp
+void ApplyRenderQuality(rex::ui::Window* window);  // render_quality.cpp
 std::unique_ptr<rex::ui::AchievementNotificationDialog> CreateAchievementToast(
     rex::ui::ImGuiDrawer* drawer, rex::ui::ImmediateDrawer* immediate, rex::Runtime* runtime);  // achievement_toast.cpp
 void ExportAchievements(rex::Runtime* runtime, const std::filesystem::path& game_data_root);  // achievements_export.cpp
@@ -62,7 +62,7 @@ class TrialsFusionApp : public rex::ReXApp {
   std::optional<rex::PathConfig> OnFinalizePaths(const rex::PathConfig& defaults,
                                                  std::function<void(rex::PathConfig)> resume) override {
     (void)resume;
-    trials::ApplyRenderQuality(window(), false);
+    trials::ApplyRenderQuality(window());
     return defaults;
   }
 

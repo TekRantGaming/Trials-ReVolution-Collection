@@ -13,13 +13,16 @@ One repo holds the launcher and the three games:
 ## Requirements
 
 * Visual Studio 2022 with the C++ tools (the games build with its LLVM clang), CMake 3.25+, Ninja, Python 3.
-* The ReXGlue SDK with TekRantGaming's patches (FSR 1 and NIS among them) plus the two renderer fixes in
+* The ReXGlue SDK with TekRantGaming's patches (FSR 1 and NIS among them) plus the renderer fixes in
   `sdk-patches/` (apply them with `git am sdk-patches/*.patch` in the SDK checkout), installed to an install prefix.
   Link it as `tools/rexglue/win-amd64` (a junction to the SDK's `out/install/win-amd64`). The fixes:
   * texture fetches with the integer number format return the stored integers (Evolution and Fusion build their
     virtual textures with them; without it most objects are black or flat);
   * unnormalized texture coordinates with an explicit mip level are texels of that level, and resolves to 16 bit
-    formats with an integer number format store integers (the Fusion virtual texture page table needs both).
+    formats with an integer number format store integers (the Fusion virtual texture page table needs both);
+  * memory export at an even resolution scale reads its interpolants at the guest pixel center (Evolution and
+    Fusion copy their texture pages that way; above 1x they were noise), and readback_resolve_scaled_max_kb limits
+    readbacks when resolution scaled.
 
 ## The launcher
 

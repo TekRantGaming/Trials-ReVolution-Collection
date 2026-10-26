@@ -29,6 +29,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <string>
 #include <string_view>
 
@@ -63,25 +64,13 @@ int ScaleFor(std::string_view mode, int output_height) {
 
 }  // namespace
 
-void ApplyRenderQuality(rex::ui::Window* window, bool can_scale) {
+void ApplyRenderQuality(rex::ui::Window* window) {
   // The guest video mode: always 1280 x 720. The default becomes 0 so that 1280 counts as set and wins over a
   // window size (HasNonDefaultValue compares with the default).
   for (const char* name : {"video_mode_width", "video_mode_height"}) SetCvarDefault(name, "0");
   rex::cvar::SetFlagByName("video_mode_width", "1280");
   rex::cvar::SetFlagByName("video_mode_height", "720");
 
-  if (!can_scale) {
-    // Trials Evolution and Trials Fusion build their virtual textures with pixel shaders that write memory; at a
-    // higher render scale those writes land in the wrong places and surfaces turn to noise. Always the original
-    // resolution, whatever the settings say (the upscaler still scales the picture to the screen).
-    rex::cvar::ResetToDefault("resolution_scale");
-    for (const char* axis : {"draw_resolution_scale_x", "draw_resolution_scale_y"}) {
-      SetCvarDefault(axis, "1");
-      rex::cvar::SetFlagByName(axis, "1");
-    }
-    REXLOG_INFO("Trials: render scale kept at 1x");
-    return;
-  }
   const std::string mode = REXCVAR_GET(trials_render_quality);
   // Output height in physical pixels: the screen in fullscreen, else the window.
   // The window is not sized yet here, so windowed uses the window height setting (logical units, times the

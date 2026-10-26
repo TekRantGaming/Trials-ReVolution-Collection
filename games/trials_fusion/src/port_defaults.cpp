@@ -6,6 +6,9 @@
 //                                        snufflyyy/trials-hd-recompiled, MIT, and measured here 26 Oct 2026)
 //   clear_memory_page_state = false      the CPU written pages stay valid between frames (writes are watched)
 //   readback_resolve = fast              the game measures exposure from small resolves on the CPU
+//   readback_resolve_scaled_max_kb = 32  above 1x render resolution, only those small results are read back: each
+//                                        scaled readback is downscaled first, and the larger ones (the scene, the
+//                                        texture page tables) held a race at 2x to 15 to 35 FPS; with 32 KB it holds 60
 //   render_target_path_vulkan = fbo      Linux: host render targets (faster on handheld graphics)
 // Fullscreen stays the SDK's default (on).
 
@@ -29,6 +32,7 @@ void ApplyPortDefaults() {
   SetCvarDefault("readback_memexport", "false");
   SetCvarDefault("clear_memory_page_state", "false");
   SetCvarDefault("readback_resolve", "fast");
+  SetCvarDefault("readback_resolve_scaled_max_kb", "32");
 #if defined(__linux__)
   SetCvarDefault("render_target_path_vulkan", "fbo");
 #endif

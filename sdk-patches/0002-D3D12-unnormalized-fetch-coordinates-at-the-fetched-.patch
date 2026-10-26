@@ -1,7 +1,7 @@
 From ec0915f5f7b12319026a64f34704fb795fef3dfe Mon Sep 17 00:00:00 2001
 From: TekRantGaming <craigferels896@gmail.com>
 Date: Mon, 26 Oct 2026 14:33:59 +0000
-Subject: [PATCH 2/2] D3D12: unnormalized fetch coordinates at the fetched mip
+Subject: [PATCH 2/3] D3D12: unnormalized fetch coordinates at the fetched mip
  level, integer resolve destinations
 
 Unnormalized texture coordinates with a register LOD are texels of that mip level. Resolves to 16 bpp formats with

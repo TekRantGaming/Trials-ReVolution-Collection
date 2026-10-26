@@ -165,7 +165,7 @@ Everything is set up before a game starts, with a controller, the keyboard or th
 - **Fullscreen** or **windowed**, window size, **choose the monitor**, vertical sync
 - **Frame rate**: 30, **60** (the default, like the Xbox 360), 120, 144, 165, 240 or **no limit**. The games still run at the right speed
 - **Upscaler**: AMD FSR 1 or NVIDIA NIS
-- **Render resolution** in Trials HD from the original 720p up to 6x, also through the upscaler's Native, Quality, Balanced and Performance modes
+- **Render resolution** from the original up to 6x, also through the upscaler's Native, Quality, Balanced and Performance modes (2x holds 60 FPS in all three games)
 - **FXAA** and **texture filtering** up to 16x
 - **Keep the original shape** with black bars, or stretch to fill
 
@@ -214,7 +214,7 @@ Each game's **Saves and install** page backs up your saves and restores them, op
 
 | | Xbox 360 | PC |
 | --- | :---: | :---: |
-| Resolution | 1280 x 720 | Trials HD up to 6x (7680 x 4320); Evolution and Fusion at their original resolution, upscaled to your screen |
+| Resolution | 1280 x 720 (Evolution and Fusion a little less) | up to 6x the original |
 | Frame rate | 60 fps | 30, 60, 120, 144, 165, 240 or no limit |
 | Upscaling | none | AMD FSR 1 or NVIDIA NIS |
 | Anti aliasing | console | FXAA, or higher resolutions |
@@ -235,7 +235,6 @@ Each game's **Saves and install** page backs up your saves and restores them, op
 
 ### Known limits
 
-- **Trials Evolution and Trials Fusion draw at their original resolution.** Their tracks are textured by the GPU itself, and that does not survive a higher render resolution yet; the upscaler still scales the picture to your screen.
 - **No online play**: leaderboards, multiplayer and Track Central need Xbox Live.
 - **Base games only** for now: no downloadable content or title updates.
 
