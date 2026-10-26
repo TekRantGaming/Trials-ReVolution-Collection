@@ -123,9 +123,23 @@ void AfterGetState(uint8_t* base, uint32_t user, uint32_t state, bool ok) {
   ReturnToLauncherTick(user, connected, connected ? Load16(base, state + 4) : 0);
   GameWindowTick(connected && PadChanged(user, base + state));  // front, cursor
   if (!connected) return;  // no pad in this slot
+#if defined(TH_DEV_TOOLS) || defined(TE_DEV_TOOLS) || defined(TF_DEV_TOOLS)
+  const uint16_t in_buttons = Load16(base, state + 4), in_lx = Load16(base, state + 8);
+#endif
   ApplyRemap(base, state);
   ApplyDeadzone(base, state + 8, REXCVAR_GET(trials_deadzone));
   ApplyDeadzone(base, state + 12, REXCVAR_GET(trials_deadzone));
+#if defined(TH_DEV_TOOLS) || defined(TE_DEV_TOOLS) || defined(TF_DEV_TOOLS)
+  // Developer aid: what the options changed, when the input changes.
+  static uint32_t last = 0xFFFFFFFF;
+  const uint32_t now = uint32_t(in_buttons) << 16 | in_lx;
+  if (now != last) {
+    last = now;
+    REXLOG_INFO("Trials dev input: buttons {:04X} -> {:04X}, triggers {} {}, left x {} -> {}", in_buttons,
+                Load16(base, state + 4), base[state + 6], base[state + 7], int16_t(in_lx),
+                int16_t(Load16(base, state + 8)));
+  }
+#endif
 }
 
 }  // namespace trials
@@ -182,6 +196,9 @@ REX_HOOK_RAW(sub_82124688) {
   };
   store(vib, uint16_t(left * k));
   store(vib + 2, uint16_t(right * k));
+#if defined(TH_DEV_TOOLS) || defined(TE_DEV_TOOLS) || defined(TF_DEV_TOOLS)
+  if (left || right) REXLOG_INFO("Trials dev vibration: {} {} -> {} {}", left, right, uint16_t(left * k), uint16_t(right * k));
+#endif
   __imp__sub_82124688(ctx, base);
   store(vib, left);  // the game's own values back
   store(vib + 2, right);
