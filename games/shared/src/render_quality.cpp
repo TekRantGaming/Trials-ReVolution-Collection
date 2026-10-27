@@ -74,6 +74,19 @@ void ApplyRenderQuality(rex::ui::Window* window) {
   rex::cvar::SetFlagByName("video_mode_width", "1280");
   rex::cvar::SetFlagByName("video_mode_height", "720");
 
+#if defined(TRIALS_ORIGINAL_RESOLUTION)
+  // Trials Evolution and Trials Fusion always draw at the console's 720p: above it their post processing, texture
+  // streaming and occlusion read resolves the renderer stores scaled, and the colors, textures and scenery came out
+  // wrong (and 3x ran slow). The upscaler still takes the picture to the screen.
+  for (const char* name : {"resolution_scale", "draw_resolution_scale_x", "draw_resolution_scale_y"}) {
+    SetCvarDefault(name, "1");
+    rex::cvar::SetFlagByName(name, "1");
+  }
+  (void)window;
+  REXLOG_INFO("Trials: render resolution 720p (this game always draws at the original resolution)");
+  return;
+#endif
+
   const std::string mode = REXCVAR_GET(trials_render_quality);
   // Output height in physical pixels: the screen in fullscreen, else the window.
   // The window is not sized yet here, so windowed uses the window height setting (logical units, times the

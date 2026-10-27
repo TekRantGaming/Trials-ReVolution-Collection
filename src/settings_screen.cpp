@@ -319,7 +319,11 @@ std::vector<Section> GameSections(App& app, int g) {
       if (!on) st.Set("trials_render_quality", "custom");
       st.Save();
     }
-    if (st.Get("present_effect", "bilinear") != "bilinear") {
+    if (std::string(Games()[g].id) != "trials_hd") {  // render_quality.cpp: TRIALS_ORIGINAL_RESOLUTION
+      r.Info("Render resolution", "720p, as on the Xbox 360");
+      r.Paragraph("Drawn larger, this game's colors, textures and scenery break, so it keeps its original resolution. "
+                  "The upscaler takes the picture to your screen.");
+    } else if (st.Get("present_effect", "bilinear") != "bilinear") {
       SDL_DisplayMode dm{};
       const int screen_h = SDL_GetDesktopDisplayMode(0, &dm) == 0 ? dm.h : 1080;
       const int scale = RenderScaleFor(st.Get("trials_render_quality", "quality"), screen_h);
