@@ -43,7 +43,7 @@ if(WIN32)
 endif()
 
 # Always the original 720p render resolution (games/shared/src/render_quality.cpp).
-target_compile_definitions(trials_evolution PRIVATE TRIALS_ORIGINAL_RESOLUTION=1)
+target_compile_definitions(trials_evolution PRIVATE TRIALS_ORIGINAL_RESOLUTION=1 TRIALS_EXACT_RENDER_TARGETS=1)
 
 # Private developer aids (dev/, never in the repo): screenshots and a scripted controller for tests.
 option(TE_DEV_TOOLS "Build the developer aids in dev/" OFF)

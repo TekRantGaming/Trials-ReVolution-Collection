@@ -1,0 +1,39 @@
+From 6c2a4bdc10c40fc69be5c97c911206c614a18b80 Mon Sep 17 00:00:00 2001
+From: TekRantGaming <craigferels896@gmail.com>
+Date: Tue, 27 Oct 2026 17:14:05 +0000
+Subject: [PATCH] D3D12: integer number format fetches round only without an
+ exponent bias
+
+Table lookups (no exponent bias) still read exact integers; fixed-point values with a bias, such as the variance
+shadow map moments of Trials Evolution and Trials Fusion (k_16_16, exponent -15), are filtered as usual.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/graphics/pipeline/shader/dxbc_translator_fetch.cpp | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/src/graphics/pipeline/shader/dxbc_translator_fetch.cpp b/src/graphics/pipeline/shader/dxbc_translator_fetch.cpp
+index dfc776a..d2c5f80 100644
+--- a/src/graphics/pipeline/shader/dxbc_translator_fetch.cpp
++++ b/src/graphics/pipeline/shader/dxbc_translator_fetch.cpp
+@@ -2054,8 +2054,17 @@ void DxbcShaderTranslator::ProcessTextureFetchInstruction(
+       dxbc::Dest component_dest(dxbc::Dest::R(system_temp_result_, 1 << i));
+       a_.OpMul(component_dest, dxbc::Src::R(system_temp_result_).Select(i),
+                dxbc::Src::R(nf_temp, dxbc::Src::kWWWW));
++      // Round only when there is no exponent bias: then the integers are table entries, read exactly (the virtual
++      // texture tables, which need it). With an exponent bias they are fixed-point values that are filtered like any
++      // other: Trials Evolution and Trials Fusion filter their variance shadow map moments (k_16_16, signed
++      // integer, exponent -15), and rounding them broke the shadows.
+       a_.OpRoundNE(dxbc::Dest::R(round_temp, 0b0001), dxbc::Src::R(system_temp_result_).Select(i));
++      a_.OpUBFE(dxbc::Dest::R(round_temp, 0b0100), dxbc::Src::LU(6), dxbc::Src::LU(13),
++                RequestTextureFetchConstantWord(tfetch_index, 3));
++      a_.OpIEq(dxbc::Dest::R(round_temp, 0b0100), dxbc::Src::R(round_temp, dxbc::Src::kZZZZ), dxbc::Src::LU(0));
+       a_.OpNE(dxbc::Dest::R(nf_temp, 0b0001), dxbc::Src::R(nf_temp, dxbc::Src::kWWWW), dxbc::Src::LF(1.0f));
++      a_.OpAnd(dxbc::Dest::R(nf_temp, 0b0001), dxbc::Src::R(nf_temp, dxbc::Src::kXXXX),
++               dxbc::Src::R(round_temp, dxbc::Src::kZZZZ));
+       a_.OpMovC(component_dest, dxbc::Src::R(nf_temp, dxbc::Src::kXXXX), dxbc::Src::R(round_temp, dxbc::Src::kXXXX),
+                 dxbc::Src::R(system_temp_result_).Select(i));
+     }
+-- 
+2.55.0.windows.5
+

@@ -74,6 +74,13 @@ void ApplyRenderQuality(rex::ui::Window* window) {
   rex::cvar::SetFlagByName("video_mode_width", "1280");
   rex::cvar::SetFlagByName("video_mode_height", "720");
 
+#if defined(TRIALS_EXACT_RENDER_TARGETS)
+  // Trials Evolution: render targets emulated exactly (rasterizer ordered views). Its variance shadow maps keep
+  // their moments correct only this way (on host render targets far shadows faded and flickered), and the
+  // "Press START" title screen shows instead of black. Costs about 2 FPS in races. Default only.
+  SetCvarDefault("render_target_path_d3d12", "rov");
+#endif
+
 #if defined(TRIALS_ORIGINAL_RESOLUTION)
   // Trials Evolution and Trials Fusion always draw at the console's 720p: above it their post processing, texture
   // streaming and occlusion read resolves the renderer stores scaled, and the colors, textures and scenery came out
