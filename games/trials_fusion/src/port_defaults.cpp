@@ -10,6 +10,11 @@
 //                                        image that picks the texture pages to stream (without it at 2x the
 //                                        surfaces stayed flat and untextured)
 //   render_target_path_vulkan = fbo      Linux: host render targets (faster on handheld graphics)
+//   async_shader_compilation_no_pixel_shader = true
+//                                        depth only and memory export pipelines are built in the background too
+//                                        (on a new shader cache they froze the game up to 250 ms each)
+//   readback_resolve_max_kb = 256        only small resolves are read on the CPU; the late copy of the shadow maps
+//                                        replaced newer ones
 // Fullscreen stays the SDK's default (on).
 
 #include <string_view>
@@ -32,6 +37,8 @@ void ApplyPortDefaults() {
   SetCvarDefault("readback_memexport", "false");
   SetCvarDefault("clear_memory_page_state", "false");
   SetCvarDefault("readback_resolve", "fast");
+  SetCvarDefault("async_shader_compilation_no_pixel_shader", "true");
+  SetCvarDefault("readback_resolve_max_kb", "256");
 #if defined(__linux__)
   SetCvarDefault("render_target_path_vulkan", "fbo");
 #endif

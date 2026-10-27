@@ -14,7 +14,13 @@
 //                                        menu and level textures; uploading and invalidating the whole stream for
 //                                        every particle draw corrupted those textures (only a few KB of particle
 //                                        vertex data is written)
+//   readback_resolve_max_kb = 256        the CPU reads only small resolves (exposure up to 32 KB, page requests 180 KB,
+//                                        occlusion 216 KB); the late copy of the 1 MB shadow maps into guest memory
+//                                        replaced newer ones, and shadows vanished (and 30 MB a frame was copied)
 //   render_target_path_vulkan = fbo      Linux: host render targets (faster on handheld graphics)
+//   async_shader_compilation_no_pixel_shader = true
+//                                        depth only and memory export pipelines are built in the background too
+//                                        (on a new shader cache they froze the game up to 250 ms each)
 // Fullscreen stays the SDK's default (on).
 
 #include <string_view>
@@ -37,7 +43,9 @@ void ApplyPortDefaults() {
   SetCvarDefault("readback_memexport", "false");
   SetCvarDefault("clear_memory_page_state", "false");
   SetCvarDefault("readback_resolve", "fast");
+  SetCvarDefault("async_shader_compilation_no_pixel_shader", "true");
   SetCvarDefault("memexport_vertex_whole_stream", "false");
+  SetCvarDefault("readback_resolve_max_kb", "256");
 #if defined(__linux__)
   SetCvarDefault("render_target_path_vulkan", "fbo");
 #endif

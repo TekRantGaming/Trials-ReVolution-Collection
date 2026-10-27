@@ -1,0 +1,137 @@
+From 1083819a827a8c8c7a51725b1d2c0db55f78f06b Mon Sep 17 00:00:00 2001
+From: TekRantGaming <craigferels896@gmail.com>
+Date: Tue, 27 Oct 2026 17:36:17 +0000
+Subject: [PATCH] Resolve readback size limit, background pipelines without a
+ pixel shader
+
+readback_resolve_max_kb (0: all, as before) skips the CPU copy of larger resolves: the copy lands a frame late
+and could replace a newer resolve of the same memory (Trials Evolution's shadow maps vanished).
+
+async_shader_compilation_no_pixel_shader (off by default) prepares depth only and memory export pipelines in
+the background as well, skipping their draws meanwhile instead of freezing up to 250 ms per pipeline.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ include/rex/graphics/flags.h              |  2 ++
+ src/graphics/command_processor.cpp        | 12 ++++++++++++
+ src/graphics/d3d12/command_processor.cpp  |  4 ++++
+ src/graphics/d3d12/pipeline_cache.cpp     | 15 ++++++++++++++-
+ src/graphics/vulkan/command_processor.cpp |  4 ++++
+ 5 files changed, 36 insertions(+), 1 deletion(-)
+
+diff --git a/include/rex/graphics/flags.h b/include/rex/graphics/flags.h
+index 807be67..e74f465 100644
+--- a/include/rex/graphics/flags.h
++++ b/include/rex/graphics/flags.h
+@@ -19,6 +19,7 @@ REXCVAR_DECLARE(bool, clear_memory_page_state);
+ REXCVAR_DECLARE(bool, half_pixel_offset);
+ REXCVAR_DECLARE(bool, async_shader_compilation);
+ REXCVAR_DECLARE(int32_t, async_shader_wait_ms);
++REXCVAR_DECLARE(bool, async_shader_compilation_no_pixel_shader);
+ 
+ // GPU Resolution / Readback / Queries
+ REXCVAR_DECLARE(int32_t, resolution_scale);
+@@ -31,6 +32,7 @@ REXCVAR_DECLARE(bool, readback_resolve_half_pixel_offset);
+ REXCVAR_DECLARE(bool, readback_memexport);
+ REXCVAR_DECLARE(bool, readback_memexport_fast);
+ REXCVAR_DECLARE(bool, memexport_vertex_whole_stream);
++REXCVAR_DECLARE(int32_t, readback_resolve_max_kb);
+ REXCVAR_DECLARE(bool, occlusion_query_enable);
+ REXCVAR_DECLARE(int32_t, query_occlusion_fake_sample_count);
+ 
+diff --git a/src/graphics/command_processor.cpp b/src/graphics/command_processor.cpp
+index 1fd9207..449613d 100644
+--- a/src/graphics/command_processor.cpp
++++ b/src/graphics/command_processor.cpp
+@@ -69,6 +69,12 @@ REXCVAR_DEFINE_BOOL(readback_memexport_fast, true, "GPU",
+                     "automatic fallback to full synchronous readback")
+     .lifecycle(rex::cvar::Lifecycle::kHotReload);
+ 
++REXCVAR_DEFINE_INT32(readback_resolve_max_kb, 0, "GPU",
++                     "Read back only resolves up to this many KB (0: all). The delayed copy of a large render target "
++                     "written into guest memory can replace a newer resolve of it (Trials Evolution's shadow maps "
++                     "vanished); games that read only small results on the CPU can skip the rest")
++    .lifecycle(rex::cvar::Lifecycle::kHotReload);
++
+ REXCVAR_DEFINE_BOOL(memexport_vertex_whole_stream, true, "GPU",
+                     "Vertex shader memexport treats its whole destination stream as written: uploads it before the "
+                     "draw and invalidates the textures in it. Turn off for titles whose vertex shaders export only "
+@@ -86,6 +92,12 @@ REXCVAR_DEFINE_BOOL(async_shader_compilation, true, "GPU",
+                     "pipelines are being prepared.")
+     .lifecycle(rex::cvar::Lifecycle::kHotReload);
+ 
++REXCVAR_DEFINE_BOOL(async_shader_compilation_no_pixel_shader, false, "GPU",
++                    "With async_shader_compilation: also prepare pipelines without a pixel shader (depth only, "
++                    "memory export) in the background. Their draws are skipped for a few frames while that runs, "
++                    "instead of the game freezing while it compiles them")
++    .lifecycle(rex::cvar::Lifecycle::kHotReload);
++
+ REXCVAR_DEFINE_INT32(async_shader_wait_ms, 0, "GPU",
+                      "With async_shader_compilation: how long a frame may wait, in total, for "
+                      "pipelines being prepared in the background before drawing without them. "
+diff --git a/src/graphics/d3d12/command_processor.cpp b/src/graphics/d3d12/command_processor.cpp
+index 0dd8782..64619b9 100644
+--- a/src/graphics/d3d12/command_processor.cpp
++++ b/src/graphics/d3d12/command_processor.cpp
+@@ -3077,6 +3077,10 @@ bool D3D12CommandProcessor::IssueCopy_ReadbackResolvePath() {
+   if (max_kb > 0 && texture_cache_->IsDrawResolutionScaled() && written_length > uint32_t(max_kb) * 1024) {
+     return true;
+   }
++  const int32_t any_max_kb = REXCVAR_GET(readback_resolve_max_kb);
++  if (any_max_kb > 0 && written_length > uint32_t(any_max_kb) * 1024) {
++    return true;
++  }
+ 
+   if (!memory_->TranslatePhysical(written_address)) {
+     return true;
+diff --git a/src/graphics/d3d12/pipeline_cache.cpp b/src/graphics/d3d12/pipeline_cache.cpp
+index d7751ca..0cb76f4 100644
+--- a/src/graphics/d3d12/pipeline_cache.cpp
++++ b/src/graphics/d3d12/pipeline_cache.cpp
+@@ -913,7 +913,7 @@ bool PipelineCache::ConfigurePipeline(
+   assert_not_null(root_signature_out);
+ 
+   bool use_async = REXCVAR_GET(async_shader_compilation) && !creation_threads_.empty() &&
+-                   pixel_shader != nullptr;
++                   (pixel_shader != nullptr || REXCVAR_GET(async_shader_compilation_no_pixel_shader));
+ 
+   // Ensure shaders are translated - needed now for GetCurrentStateDescription.
+   // Edge flags are not supported yet (because polygon primitives are not).
+@@ -3195,6 +3195,19 @@ bool PipelineCache::PrepareRuntimeDescriptionForQueuedCreation(
+     }
+     runtime_description.root_signature = root_signature;
+     pipeline->root_signature.store(root_signature, std::memory_order_release);
++  } else if (!runtime_description.pixel_shader) {
++    // No pixel shader (async_shader_compilation_no_pixel_shader): the root signature depends on the vertex shader,
++    // translated only now.
++    bool tessellated = Shader::IsHostVertexShaderTypeDomain(
++        DxbcShaderTranslator::Modification(runtime_description.vertex_shader->modification())
++            .vertex.host_vertex_shader_type);
++    ID3D12RootSignature* root_signature = command_processor_.GetRootSignature(
++        static_cast<const DxbcShader*>(&runtime_description.vertex_shader->shader()), nullptr, tessellated);
++    if (!root_signature) {
++      return false;
++    }
++    runtime_description.root_signature = root_signature;
++    pipeline->root_signature.store(root_signature, std::memory_order_release);
+   }
+ 
+   return true;
+diff --git a/src/graphics/vulkan/command_processor.cpp b/src/graphics/vulkan/command_processor.cpp
+index 8cedaaf..ffac2f8 100644
+--- a/src/graphics/vulkan/command_processor.cpp
++++ b/src/graphics/vulkan/command_processor.cpp
+@@ -4538,6 +4538,10 @@ bool VulkanCommandProcessor::IssueCopy_ReadbackResolvePath() {
+   if (!written_length) {
+     return true;
+   }
++  const int32_t any_max_kb = REXCVAR_GET(readback_resolve_max_kb);
++  if (any_max_kb > 0 && written_length > uint32_t(any_max_kb) * 1024) {
++    return true;
++  }
+ 
+   if (!memory_->TranslatePhysical(written_address)) {
+     return true;
+-- 
+2.55.0.windows.5
+
