@@ -1,0 +1,52 @@
+From 8be6873b5ebdd5abcd9a84ca73bda9fbec238e2a Mon Sep 17 00:00:00 2001
+From: TekRantGaming <craigferels896@gmail.com>
+Date: Tue, 27 Oct 2026 14:15:21 +0000
+Subject: [PATCH 7/7] Shared memory: upload whole pages written after the fact
+ (file reads)
+
+Exact range invalidations are reported after the data is written, so a page snapshot taken then already holds
+the new data and the CPU's changes were never uploaded (Trials Evolution menu textures stayed stale).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/graphics/shared_memory.cpp | 17 +++++++++++++++--
+ 1 file changed, 15 insertions(+), 2 deletions(-)
+
+diff --git a/src/graphics/shared_memory.cpp b/src/graphics/shared_memory.cpp
+index 4c5e202..fc65a8c 100644
+--- a/src/graphics/shared_memory.cpp
++++ b/src/graphics/shared_memory.cpp
+@@ -593,8 +593,11 @@ std::pair<uint32_t, uint32_t> SharedMemory::MemoryInvalidationCallback(
+     if (i == block_last && (page_last & 63) != 63) {
+       invalidate_bits &= (uint64_t(1) << ((page_last & 63) + 1)) - 1;
+     }
+-    // Called before the write lands, so guest memory still holds what the GPU's copy was made from.
+-    uint64_t gpu_written_bits = system_page_flags_valid_and_gpu_written_[i] & invalidate_bits;
++    // From a write access violation (not an exact range) this runs before the write lands, so guest memory still
++    // holds what the GPU's copy was made from. Exact ranges are reported after the data is written (file reads),
++    // so those pages are uploaded whole.
++    uint64_t gpu_written_bits =
++        exact_range ? 0 : system_page_flags_valid_and_gpu_written_[i] & invalidate_bits;
+     uint32_t gpu_written_bit;
+     while (rex::bit_scan_forward(gpu_written_bits, &gpu_written_bit)) {
+       gpu_written_bits &= ~(uint64_t(1) << gpu_written_bit);
+@@ -612,6 +615,16 @@ std::pair<uint32_t, uint32_t> SharedMemory::MemoryInvalidationCallback(
+     system_page_flags_valid_[i] &= ~invalidate_bits;
+     system_page_flags_valid_and_gpu_written_[i] &= ~invalidate_bits;
+   }
++  // Data written over a whole range after the fact: upload those pages whole too.
++  if (exact_range && !gpu_page_snapshots_.empty()) {
++    for (auto it = gpu_page_snapshots_.begin(); it != gpu_page_snapshots_.end();) {
++      if (it->first >= page_first && it->first <= page_last) {
++        it = gpu_page_snapshots_.erase(it);
++      } else {
++        ++it;
++      }
++    }
++  }
+ 
+   FireWatches(page_first, page_last, false);
+ 
+-- 
+2.55.0.windows.5
+
