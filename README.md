@@ -165,7 +165,7 @@ Everything is set up before a game starts, with a controller, the keyboard or th
 - **Fullscreen** or **windowed**, window size, **choose the monitor**, vertical sync
 - **Frame rate** in Trials HD: 30, **60** (the default, like the Xbox 360), 120, 144, 165, 240 or **no limit**, with the physics at its own 60 steps a second. Trials Evolution and Trials Fusion run at 60: their game speed follows the frame rate
 - **Upscaler**: AMD FSR 1 or NVIDIA NIS
-- **Render resolution** from the original up to 6x, also through the upscaler's Native, Quality, Balanced and Performance modes (2x holds 60 FPS in all three games)
+- **Render resolution** in Trials HD from the original up to 6x, also through the upscaler's Native, Quality, Balanced and Performance modes. Trials Evolution and Trials Fusion always draw at their original 720p, as on the Xbox 360 (drawn larger, their colors, textures and scenery break), and the upscaler takes them to your screen
 - **FXAA** and **texture filtering** up to 16x
 - **Keep the original shape** with black bars, or stretch to fill
 
