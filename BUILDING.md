@@ -22,7 +22,10 @@ One repo holds the launcher and the three games:
     formats with an integer number format store integers (the Fusion virtual texture page table needs both);
   * memory export at an even resolution scale reads its interpolants at the guest pixel center (Evolution and
     Fusion copy their texture pages that way; above 1x they were noise), and readback_resolve_scaled_max_kb limits
-    readbacks when resolution scaled.
+    readbacks when resolution scaled;
+  * getCompTexLOD reports the level of detail the console would at any resolution scale;
+  * resolves to 32 bit formats with an integer number format store integers, signed ones in two's complement
+    (Evolution reads its occlusion depth map back on the CPU; without it scenery vanishes all over the game).
 
 ## The launcher
 

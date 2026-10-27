@@ -62,14 +62,8 @@ rex::ui::FrameStats GuestFrameStats() {
 
 }  // namespace trials
 
-// The game's occlusion culling ("Graphic:Advance:Occlusion:Enable", a debug switch whose byte is at 0x82FDC9D3)
-// decides from GPU results the renderer does not reproduce, so it hid the rider, the bike and most buildings. Kept
-// off: each frame, since the game sets its debug switches from their defaults after it starts.
-constexpr uint32_t kOcclusionEnable = 0x82FDC9D3;
-
 REX_EXTERN(__imp__sub_826CB050);
 REX_HOOK_RAW(sub_826CB050) {
-  base[kOcclusionEnable] = 0;
   __imp__sub_826CB050(ctx, base);
   trials::CountFrame();
   trials::LimitFrame();
