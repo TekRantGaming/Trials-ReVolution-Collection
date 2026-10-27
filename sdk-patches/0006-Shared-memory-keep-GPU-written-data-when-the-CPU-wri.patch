@@ -1,0 +1,299 @@
+From 0c5c27d49fe3acc731cc6ef3b57d0f74a83685d2 Mon Sep 17 00:00:00 2001
+From: TekRantGaming <craigferels896@gmail.com>
+Date: Tue, 27 Oct 2026 13:25:45 +0000
+Subject: [PATCH] Shared memory: keep GPU written data when the CPU writes to
+ the same page
+
+Memory export is not read back, so guest memory lacks what the GPU wrote. A CPU write to such a page used to
+reupload the whole page from guest memory, replacing the GPU's data with stale bytes (Trials Evolution expands
+particles into a vertex buffer the CPU also writes: stretched triangles and black areas). The page is now saved
+before the first CPU write, and only the bytes the CPU changed are uploaded.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ include/rex/graphics/d3d12/shared_memory.h  |  1 +
+ include/rex/graphics/shared_memory.h        | 15 ++++
+ include/rex/graphics/vulkan/shared_memory.h |  1 +
+ src/graphics/d3d12/shared_memory.cpp        | 26 ++++++
+ src/graphics/shared_memory.cpp              | 91 ++++++++++++++++++++-
+ src/graphics/vulkan/shared_memory.cpp       | 32 ++++++++
+ 6 files changed, 163 insertions(+), 3 deletions(-)
+
+diff --git a/include/rex/graphics/d3d12/shared_memory.h b/include/rex/graphics/d3d12/shared_memory.h
+index 5100818..6edd124 100644
+--- a/include/rex/graphics/d3d12/shared_memory.h
++++ b/include/rex/graphics/d3d12/shared_memory.h
+@@ -80,6 +80,7 @@ class D3D12SharedMemory : public SharedMemory {
+                                         uint32_t length_allocations) override;
+ 
+   bool UploadRanges(const std::vector<std::pair<uint32_t, uint32_t>>& upload_page_ranges) override;
++  bool UploadByteRanges(const std::vector<std::pair<uint32_t, uint32_t>>& upload_byte_ranges) override;
+ 
+  private:
+   D3D12CommandProcessor& command_processor_;
+diff --git a/include/rex/graphics/shared_memory.h b/include/rex/graphics/shared_memory.h
+index 4d85a2b..3de4b9e 100644
+--- a/include/rex/graphics/shared_memory.h
++++ b/include/rex/graphics/shared_memory.h
+@@ -11,7 +11,9 @@
+  */
+ 
+ #include <cstdint>
++#include <memory>
+ #include <mutex>
++#include <unordered_map>
+ #include <utility>
+ #include <vector>
+ 
+@@ -139,6 +141,8 @@ class SharedMemory {
+   // overall bounds of pages to be uploaded.
+   virtual bool UploadRanges(
+       const std::vector<std::pair<uint32_t, uint32_t>>& upload_page_ranges) = 0;
++  // Uploads byte ranges (4 byte aligned, ascending) within pages already made valid, from guest memory.
++  virtual bool UploadByteRanges(const std::vector<std::pair<uint32_t, uint32_t>>& upload_byte_ranges) = 0;
+ 
+  private:
+   memory::Memory& memory_;
+@@ -176,6 +180,17 @@ class SharedMemory {
+   std::vector<uint64_t> system_page_flags_valid_and_gpu_written_;
+   uint32_t num_system_page_flags_ = 0;
+ 
++  // GPU-written pages the CPU has since written to, as they were in guest memory before the first CPU write. Guest
++  // memory lacks the GPU's data (memory export is not read back), so uploading such a page whole would replace the
++  // GPU's data with stale bytes; only the bytes the CPU changed are uploaded instead.
++  static constexpr size_t kMaxGpuPageSnapshots = 4096;
++  std::unordered_map<uint32_t, std::unique_ptr<uint8_t[]>> gpu_page_snapshots_;
++  // Snapshots taken out for the current upload (only used by RequestRanges).
++  std::vector<std::pair<uint32_t, std::unique_ptr<uint8_t[]>>> snapshot_uploads_;
++  std::vector<std::pair<uint32_t, uint32_t>> upload_ranges_kept_;
++  std::vector<std::pair<uint32_t, uint32_t>> upload_byte_ranges_;
++  bool UploadCpuChangedBytes();
++
+   static std::pair<uint32_t, uint32_t> MemoryInvalidationCallbackThunk(
+       void* context_ptr, uint32_t physical_address_start, uint32_t length, bool exact_range);
+ 
+diff --git a/include/rex/graphics/vulkan/shared_memory.h b/include/rex/graphics/vulkan/shared_memory.h
+index 104bdad..d9c3b46 100644
+--- a/include/rex/graphics/vulkan/shared_memory.h
++++ b/include/rex/graphics/vulkan/shared_memory.h
+@@ -54,6 +54,7 @@ class VulkanSharedMemory : public SharedMemory {
+                                         uint32_t length_allocations) override;
+ 
+   bool UploadRanges(const std::vector<std::pair<uint32_t, uint32_t>>& upload_page_ranges) override;
++  bool UploadByteRanges(const std::vector<std::pair<uint32_t, uint32_t>>& upload_byte_ranges) override;
+ 
+  private:
+   void GetUsageMasks(Usage usage, VkPipelineStageFlags& stage_mask,
+diff --git a/src/graphics/d3d12/shared_memory.cpp b/src/graphics/d3d12/shared_memory.cpp
+index a5c97a0..cce30f4 100644
+--- a/src/graphics/d3d12/shared_memory.cpp
++++ b/src/graphics/d3d12/shared_memory.cpp
+@@ -338,4 +338,30 @@ bool D3D12SharedMemory::UploadRanges(
+   return true;
+ }
+ 
++bool D3D12SharedMemory::UploadByteRanges(
++    const std::vector<std::pair<uint32_t, uint32_t>>& upload_byte_ranges) {
++  if (upload_byte_ranges.empty()) {
++    return true;
++  }
++  CommitUAVWritesAndTransitionBuffer(D3D12_RESOURCE_STATE_COPY_DEST);
++  command_processor_.SubmitBarriers();
++  auto& command_list = command_processor_.GetDeferredCommandList();
++  for (auto upload_range : upload_byte_ranges) {
++    ID3D12Resource* upload_buffer;
++    size_t upload_buffer_offset;
++    uint8_t* upload_buffer_mapping =
++        upload_buffer_pool_->Request(command_processor_.GetCurrentSubmission(), upload_range.second,
++                                     4, &upload_buffer, &upload_buffer_offset, nullptr);
++    if (upload_buffer_mapping == nullptr) {
++      REXGPU_ERROR("Shared memory: Failed to get an upload buffer");
++      return false;
++    }
++    std::memcpy(upload_buffer_mapping, memory().TranslatePhysical(upload_range.first),
++                upload_range.second);
++    command_list.D3DCopyBufferRegion(buffer_, upload_range.first, upload_buffer,
++                                     UINT64(upload_buffer_offset), UINT64(upload_range.second));
++  }
++  return true;
++}
++
+ }  // namespace rex::graphics::d3d12
+diff --git a/src/graphics/shared_memory.cpp b/src/graphics/shared_memory.cpp
+index ec0df7c..4c5e202 100644
+--- a/src/graphics/shared_memory.cpp
++++ b/src/graphics/shared_memory.cpp
+@@ -95,6 +95,7 @@ void SharedMemory::InvalidateAllPages() {
+   std::fill(system_page_flags_valid_.begin(), system_page_flags_valid_.end(), uint64_t(0));
+   std::fill(system_page_flags_valid_and_gpu_written_.begin(),
+             system_page_flags_valid_and_gpu_written_.end(), uint64_t(0));
++  gpu_page_snapshots_.clear();
+ }
+ 
+ void SharedMemory::SetSystemPageBlocksValidWithGpuDataWritten() {
+@@ -306,6 +307,16 @@ void SharedMemory::MakeRangeValid(uint32_t start, uint32_t length, bool written_
+       uint64_t& gpu_written = system_page_flags_valid_and_gpu_written_[i];
+       gpu_written = written_by_gpu ? (gpu_written | valid_bits) : (gpu_written & ~valid_bits);
+     }
++    // The GPU wrote over these pages, so the CPU's pending changes in them are superseded.
++    if (written_by_gpu && !gpu_page_snapshots_.empty()) {
++      for (auto it = gpu_page_snapshots_.begin(); it != gpu_page_snapshots_.end();) {
++        if (it->first >= valid_page_first && it->first <= valid_page_last) {
++          it = gpu_page_snapshots_.erase(it);
++        } else {
++          ++it;
++        }
++      }
++    }
+   }
+ 
+   if (memory_invalidation_callback_handle_) {
+@@ -453,6 +464,32 @@ bool SharedMemory::RequestRanges(const std::pair<uint32_t, uint32_t>* ranges, si
+         append_upload_range(range_start, page_last + 1 - range_start);
+       }
+     }
++
++    // Pages holding GPU data that the CPU has written to are uploaded by their changed bytes only.
++    snapshot_uploads_.clear();
++    if (!gpu_page_snapshots_.empty() && !upload_ranges_.empty()) {
++      upload_ranges_kept_.clear();
++      for (const std::pair<uint32_t, uint32_t>& range : upload_ranges_) {
++        uint32_t kept_start = range.first;
++        uint32_t range_end = range.first + range.second;
++        for (uint32_t page = range.first; page < range_end; ++page) {
++          auto it = gpu_page_snapshots_.find(page);
++          if (it == gpu_page_snapshots_.end()) {
++            continue;
++          }
++          if (page > kept_start) {
++            upload_ranges_kept_.emplace_back(kept_start, page - kept_start);
++          }
++          kept_start = page + 1;
++          snapshot_uploads_.emplace_back(page, std::move(it->second));
++          gpu_page_snapshots_.erase(it);
++        }
++        if (range_end > kept_start) {
++          upload_ranges_kept_.emplace_back(kept_start, range_end - kept_start);
++        }
++      }
++      upload_ranges_.swap(upload_ranges_kept_);
++    }
+   }
+ 
+   COUNT_profile_set("gpu/shared_memory/request_ranges_count", uint32_t(count));
+@@ -461,11 +498,43 @@ bool SharedMemory::RequestRanges(const std::pair<uint32_t, uint32_t>* ranges, si
+   COUNT_profile_set("gpu/shared_memory/request_ranges_upload_count",
+                     uint32_t(upload_ranges_.size()));
+ 
+-  if (upload_ranges_.empty()) {
+-    return true;
++  bool uploaded = upload_ranges_.empty() || UploadRanges(upload_ranges_);
++  if (!snapshot_uploads_.empty()) {
++    uploaded = UploadCpuChangedBytes() && uploaded;
+   }
++  return uploaded;
++}
+ 
+-  return UploadRanges(upload_ranges_);
++bool SharedMemory::UploadCpuChangedBytes() {
++  const uint32_t page_size = uint32_t(1) << page_size_log2_;
++  const uint32_t page_dwords = page_size >> 2;
++  // Differences closer than this many dwords are uploaded as one range.
++  constexpr uint32_t kJoinDwords = 16;
++  upload_byte_ranges_.clear();
++  for (const auto& [page, snapshot] : snapshot_uploads_) {
++    uint32_t page_start = page << page_size_log2_;
++    // Valid (and still holding GPU data) before reading, so writes from now on are caught again.
++    MakeRangeValid(page_start, page_size, true);
++    const uint32_t* now = reinterpret_cast<const uint32_t*>(memory_.TranslatePhysical(page_start));
++    const uint32_t* before = reinterpret_cast<const uint32_t*>(snapshot.get());
++    uint32_t i = 0;
++    while (i < page_dwords) {
++      if (now[i] == before[i]) {
++        ++i;
++        continue;
++      }
++      uint32_t first = i, last = i;
++      for (++i; i < page_dwords && i - last <= kJoinDwords; ++i) {
++        if (now[i] != before[i]) {
++          last = i;
++        }
++      }
++      upload_byte_ranges_.emplace_back(page_start + (first << 2), (last - first + 1) << 2);
++      i = last + 1;
++    }
++  }
++  snapshot_uploads_.clear();
++  return upload_byte_ranges_.empty() || UploadByteRanges(upload_byte_ranges_);
+ }
+ 
+ bool SharedMemory::RequestRange(uint32_t start, uint32_t length) {
+@@ -524,6 +593,22 @@ std::pair<uint32_t, uint32_t> SharedMemory::MemoryInvalidationCallback(
+     if (i == block_last && (page_last & 63) != 63) {
+       invalidate_bits &= (uint64_t(1) << ((page_last & 63) + 1)) - 1;
+     }
++    // Called before the write lands, so guest memory still holds what the GPU's copy was made from.
++    uint64_t gpu_written_bits = system_page_flags_valid_and_gpu_written_[i] & invalidate_bits;
++    uint32_t gpu_written_bit;
++    while (rex::bit_scan_forward(gpu_written_bits, &gpu_written_bit)) {
++      gpu_written_bits &= ~(uint64_t(1) << gpu_written_bit);
++      if (gpu_page_snapshots_.size() >= kMaxGpuPageSnapshots) {
++        break;
++      }
++      uint32_t page = (i << 6) + gpu_written_bit;
++      auto& snapshot = gpu_page_snapshots_[page];
++      if (!snapshot) {
++        uint32_t page_size = uint32_t(1) << page_size_log2_;
++        snapshot = std::make_unique<uint8_t[]>(page_size);
++        std::memcpy(snapshot.get(), memory_.TranslatePhysical(page << page_size_log2_), page_size);
++      }
++    }
+     system_page_flags_valid_[i] &= ~invalidate_bits;
+     system_page_flags_valid_and_gpu_written_[i] &= ~invalidate_bits;
+   }
+diff --git a/src/graphics/vulkan/shared_memory.cpp b/src/graphics/vulkan/shared_memory.cpp
+index 6788214..583e54e 100644
+--- a/src/graphics/vulkan/shared_memory.cpp
++++ b/src/graphics/vulkan/shared_memory.cpp
+@@ -332,6 +332,38 @@ bool VulkanSharedMemory::UploadRanges(
+   return successful;
+ }
+ 
++bool VulkanSharedMemory::UploadByteRanges(
++    const std::vector<std::pair<uint32_t, uint32_t>>& upload_byte_ranges) {
++  if (upload_byte_ranges.empty()) {
++    return true;
++  }
++  Use(Usage::kTransferDestination,
++      std::make_pair(upload_byte_ranges.front().first,
++                     upload_byte_ranges.back().first + upload_byte_ranges.back().second -
++                         upload_byte_ranges.front().first));
++  command_processor_.SubmitBarriers(true);
++  DeferredCommandBuffer& command_buffer = command_processor_.deferred_command_buffer();
++  uint64_t submission_current = command_processor_.GetCurrentSubmission();
++  for (auto upload_range : upload_byte_ranges) {
++    VkBuffer upload_buffer;
++    VkDeviceSize upload_buffer_offset;
++    uint8_t* upload_buffer_mapping = upload_buffer_pool_->Request(
++        submission_current, upload_range.second, 4, upload_buffer, upload_buffer_offset);
++    if (upload_buffer_mapping == nullptr) {
++      REXGPU_ERROR("Shared memory: Failed to get a Vulkan upload buffer");
++      return false;
++    }
++    std::memcpy(upload_buffer_mapping, memory().TranslatePhysical(upload_range.first),
++                upload_range.second);
++    VkBufferCopy upload_region;
++    upload_region.srcOffset = upload_buffer_offset;
++    upload_region.dstOffset = VkDeviceSize(upload_range.first);
++    upload_region.size = upload_range.second;
++    command_buffer.CmdVkCopyBuffer(upload_buffer, buffer_, 1, &upload_region);
++  }
++  return true;
++}
++
+ void VulkanSharedMemory::GetUsageMasks(Usage usage, VkPipelineStageFlags& stage_mask,
+                                        VkAccessFlags& access_mask) const {
+   switch (usage) {
+-- 
+2.55.0.windows.5
+

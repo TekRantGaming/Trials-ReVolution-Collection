@@ -25,7 +25,10 @@ One repo holds the launcher and the three games:
     readbacks when resolution scaled;
   * getCompTexLOD reports the level of detail the console would at any resolution scale;
   * resolves to 32 bit formats with an integer number format store integers, signed ones in two's complement
-    (Evolution reads its occlusion depth map back on the CPU; without it scenery vanishes all over the game).
+    (Evolution reads its occlusion depth map back on the CPU; without it scenery vanishes all over the game);
+  * a CPU write to a page the GPU wrote with memory export uploads only the bytes the CPU changed (Evolution
+    expands its particles into a vertex buffer the CPU also fills; without it triangles stretch across the screen
+    and areas turn black as a track goes on).
 
 ## The launcher
 
