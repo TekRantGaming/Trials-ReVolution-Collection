@@ -1,7 +1,7 @@
 From 8be6873b5ebdd5abcd9a84ca73bda9fbec238e2a Mon Sep 17 00:00:00 2001
 From: TekRantGaming <craigferels896@gmail.com>
 Date: Tue, 27 Oct 2026 14:15:21 +0000
-Subject: [PATCH 7/7] Shared memory: upload whole pages written after the fact
+Subject: [PATCH 7/8] Shared memory: upload whole pages written after the fact
  (file reads)
 
 Exact range invalidations are reported after the data is written, so a page snapshot taken then already holds

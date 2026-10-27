@@ -9,6 +9,11 @@
 //   readback_resolve = fast              the game reads small resolves on the CPU: exposure, and the page request
 //                                        image that picks the texture pages to stream (without it at 2x the
 //                                        surfaces stayed flat and untextured)
+//   memexport_vertex_whole_stream = false
+//                                        the particle vertex shaders export into 8 to 16 MB streams that also hold
+//                                        menu and level textures; uploading and invalidating the whole stream for
+//                                        every particle draw corrupted those textures (only a few KB of particle
+//                                        vertex data is written)
 //   render_target_path_vulkan = fbo      Linux: host render targets (faster on handheld graphics)
 // Fullscreen stays the SDK's default (on).
 
@@ -32,6 +37,7 @@ void ApplyPortDefaults() {
   SetCvarDefault("readback_memexport", "false");
   SetCvarDefault("clear_memory_page_state", "false");
   SetCvarDefault("readback_resolve", "fast");
+  SetCvarDefault("memexport_vertex_whole_stream", "false");
 #if defined(__linux__)
   SetCvarDefault("render_target_path_vulkan", "fbo");
 #endif

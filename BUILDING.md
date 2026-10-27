@@ -28,7 +28,10 @@ One repo holds the launcher and the three games:
     (Evolution reads its occlusion depth map back on the CPU; without it scenery vanishes all over the game);
   * a CPU write to a page the GPU wrote with memory export uploads only the bytes the CPU changed (Evolution
     expands its particles into a vertex buffer the CPU also fills; without it triangles stretch across the screen
-    and areas turn black as a track goes on).
+    and areas turn black as a track goes on), and pages written by file reads are uploaded whole;
+  * after a memory export draw, pages guest threads wrote meanwhile keep their CPU data, and with
+    memexport_vertex_whole_stream off (Evolution) vertex shader exports don't upload or invalidate their whole stream
+    (the particle streams also hold the menu and level textures; without it they fill with wrong tiles).
 
 ## The launcher
 

@@ -1,8 +1,8 @@
 From 0c5c27d49fe3acc731cc6ef3b57d0f74a83685d2 Mon Sep 17 00:00:00 2001
 From: TekRantGaming <craigferels896@gmail.com>
 Date: Tue, 27 Oct 2026 13:25:45 +0000
-Subject: [PATCH] Shared memory: keep GPU written data when the CPU writes to
- the same page
+Subject: [PATCH 6/8] Shared memory: keep GPU written data when the CPU writes
+ to the same page
 
 Memory export is not read back, so guest memory lacks what the GPU wrote. A CPU write to such a page used to
 reupload the whole page from guest memory, replacing the GPU's data with stale bytes (Trials Evolution expands
