@@ -1,8 +1,8 @@
 // Object draw distance. Objects fade out between lodDissolveNearest (0.75) and lodDissolveFarest (0.95) of their
 // LOD distance, the 360 values (Graphic:Advance:RenderingDebug, floats at 0x82FDC150 and 0x82FDC14C). Far buildings
 // and props were missing until the bike got close, then appeared all at once. trials_object_distance scales both;
-// 1 keeps the 360 distances. Written when a track loads (sub_821D08A8 picks the LOD range then). Measured 28 Oct
-// 2026 on a ride: 1.6 held 60 FPS, 2 fell to 10 to 20 and 2.5 to about 40, so the default stays at 1.5.
+// 1 keeps the 360 distances. Written when a track loads (sub_821D08A8 picks the LOD range then). At 2 a release
+// build held 60 FPS over a full ride.
 
 #include <cstdint>
 #include <cstring>
@@ -10,7 +10,7 @@
 #include <rex/cvar.h>
 #include <rex/hook.h>
 
-REXCVAR_DEFINE_DOUBLE(trials_object_distance, 1.5, "Collection",
+REXCVAR_DEFINE_DOUBLE(trials_object_distance, 2.0, "Collection",
                       "Object draw distance, times the original (1 = Xbox 360)");
 
 namespace {
