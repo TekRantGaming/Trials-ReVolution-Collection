@@ -10,6 +10,11 @@
 #include <rex/cvar.h>
 #include <rex/hook.h>
 
+// Shadow cascades. The 360 redraws the near PSSM cascade every frame, the second every 2nd and the far two every 4th
+// (Graphic:Advance:Shadow:PSSMInterleavedRendering, byte at 0x82FDC74F). trials_shadow_every_frame redraws all four
+// every frame instead.
+REXCVAR_DEFINE_BOOL(trials_shadow_every_frame, true, "Collection", "Redraw every shadow cascade each frame");
+
 REXCVAR_DEFINE_DOUBLE(trials_object_distance, 2.0, "Collection",
                       "Object draw distance, times the original (1 = Xbox 360)");
 
@@ -34,4 +39,5 @@ REX_HOOK_RAW(sub_821D08A8) {
   if (k > 8.0) k = 8.0;
   StoreFloat(base, 0x82FDC14C, float(0.95 * k));  // lodDissolveFarest
   StoreFloat(base, 0x82FDC150, float(0.75 * k));  // lodDissolveNearest
+  base[0x82FDC74F] = REXCVAR_GET(trials_shadow_every_frame) ? 0 : 1;  // PSSMInterleavedRendering
 }
