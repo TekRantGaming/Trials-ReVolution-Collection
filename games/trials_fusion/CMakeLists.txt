@@ -20,6 +20,7 @@ set(TRIALSFUSION_SOURCES
     ../shared/src/achievements_export.cpp
     src/input_options.cpp
     src/frame_stats.cpp
+    src/draw_distance.cpp
     ../shared/src/achievement_toast.cpp
     ../shared/src/return_to_launcher.cpp
     ../shared/src/render_quality.cpp
