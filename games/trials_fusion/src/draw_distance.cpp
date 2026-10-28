@@ -41,3 +41,21 @@ REX_HOOK_RAW(sub_821D08A8) {
   StoreFloat(base, 0x82FDC150, float(0.75 * k));  // lodDissolveNearest
   base[0x82FDC74F] = REXCVAR_GET(trials_shadow_every_frame) ? 0 : 1;  // PSSMInterleavedRendering
 }
+
+// Shadow distance. Shadows fade out between 0.75 and 1 times the shadow view distance a track sets every frame
+// (sub_828177C8; 32 on the first tracks), so anything a little ahead of the camera had none and shadows popped in as
+// the bike came closer. trials_shadow_distance scales it through the game's own debug override
+// (enableTweakingShadowDrawDistance, byte at 0x83059A5A, with MaxShadowViewDistance, float at 0x82FDC788); 1 keeps
+// the 360 distance.
+REXCVAR_DEFINE_DOUBLE(trials_shadow_distance, 3.0, "Collection", "Shadow distance, times the original (1 = Xbox 360)");
+
+REX_EXTERN(__imp__sub_828177C8);
+REX_HOOK_RAW(sub_828177C8) {
+  const double distance = ctx.f1.f64;
+  __imp__sub_828177C8(ctx, base);
+  double k = REXCVAR_GET(trials_shadow_distance);
+  if (!(k > 0.0)) k = 1.0;
+  if (k > 8.0) k = 8.0;
+  base[0x83059A5A] = k != 1.0;  // enableTweakingShadowDrawDistance
+  StoreFloat(base, 0x82FDC788, float(distance * k));  // MaxShadowViewDistance
+}
