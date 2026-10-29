@@ -15,6 +15,10 @@
 //                                        (on a new shader cache they froze the game up to 250 ms each)
 //   readback_resolve_max_kb = 256        only small resolves are read on the CPU; the late copy of the shadow maps
 //                                        replaced newer ones
+//   readback_resolve_half_pixel_offset = true
+//                                        above 720p the CPU's copy of a resolve takes the centre host pixel of each
+//                                        guest pixel, which the half pixel offset makes the right one (in Trials
+//                                        Evolution the top left one darkened the ground near the camera)
 // Fullscreen stays the SDK's default (on).
 
 #include <string_view>
@@ -39,6 +43,7 @@ void ApplyPortDefaults() {
   SetCvarDefault("readback_resolve", "fast");
   SetCvarDefault("async_shader_compilation_no_pixel_shader", "true");
   SetCvarDefault("readback_resolve_max_kb", "256");
+  SetCvarDefault("readback_resolve_half_pixel_offset", "true");
   // Above 720p every host pixel of a guest pixel gets that pixel's position: the color grading table is drawn from
   // the pixel position, and positions between guest pixels made the whole picture pink (SDK patch 0013).
   SetCvarDefault("ps_position_guest_pixels", "true");

@@ -17,6 +17,11 @@
 //   readback_resolve_max_kb = 256        the CPU reads only small resolves (exposure up to 32 KB, page requests 180 KB,
 //                                        occlusion 216 KB); the late copy of the 1 MB shadow maps into guest memory
 //                                        replaced newer ones, and shadows vanished (and 30 MB a frame was copied)
+//   readback_resolve_half_pixel_offset = true
+//                                        above 720p the CPU's copy of a resolve takes the centre host pixel of each
+//                                        guest pixel: the half pixel offset moves the picture by a host pixel, and
+//                                        the top left one gave the tile lighting a neighbour's depth, so ground near
+//                                        the camera got the wrong shadow cascade and went dark (29 Oct 2026)
 //   render_target_path_vulkan = fbo      Linux: host render targets (faster on handheld graphics)
 //   async_shader_compilation_no_pixel_shader = true
 //                                        depth only and memory export pipelines are built in the background too
@@ -46,6 +51,7 @@ void ApplyPortDefaults() {
   SetCvarDefault("async_shader_compilation_no_pixel_shader", "true");
   SetCvarDefault("memexport_vertex_whole_stream", "false");
   SetCvarDefault("readback_resolve_max_kb", "256");
+  SetCvarDefault("readback_resolve_half_pixel_offset", "true");
 #if defined(__linux__)
   SetCvarDefault("render_target_path_vulkan", "fbo");
 #endif

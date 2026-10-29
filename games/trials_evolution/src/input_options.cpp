@@ -148,6 +148,7 @@ void AfterGetState(uint8_t* base, uint32_t user, uint32_t state, bool ok) {
 namespace th {
 bool DevPadCaps(PPCContext& ctx, uint8_t* base);   // dev/dev_pad.cpp: the scripted test controller
 bool DevPadState(PPCContext& ctx, uint8_t* base);
+void DevPadRecord(uint8_t* base, uint32_t user, uint32_t state, bool ok);  // TH_DEV_REC
 }  // namespace th
 REX_EXTERN(__imp__sub_82586FE0);
 REX_HOOK_RAW(sub_82586FE0) {
@@ -163,6 +164,9 @@ REX_HOOK_RAW(sub_821BA338) {
   if (!th::DevPadState(ctx, base))
 #endif
     __imp__sub_821BA338(ctx, base);
+#if defined(TE_DEV_TOOLS)
+  th::DevPadRecord(base, user, state, ctx.r3.u32 == 0);
+#endif
   trials::AfterGetState(base, user, state, ctx.r3.u32 == 0);
 }
 
