@@ -1,0 +1,44 @@
+From 44426fa98df01b96e0f034be72033a265b0beefa Mon Sep 17 00:00:00 2001
+From: TekRantGaming <craigferels896@gmail.com>
+Date: Thu, 29 Oct 2026 02:48:09 +0000
+Subject: [PATCH] DXBC: ps_position_guest_pixels, the guest pixel's position
+ for every host pixel under resolution scaling
+
+The pixel position was the host pixel divided by the scale (steps of 1/scale), so a lookup table drawn from the
+position (Trials Fusion's color grading table) came out wrong above 1x. With the option every host pixel of a guest
+pixel gets its position (.0), as on the console.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/graphics/pipeline/shader/dxbc_translator.cpp | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/src/graphics/pipeline/shader/dxbc_translator.cpp b/src/graphics/pipeline/shader/dxbc_translator.cpp
+index e098378..5759269 100644
+--- a/src/graphics/pipeline/shader/dxbc_translator.cpp
++++ b/src/graphics/pipeline/shader/dxbc_translator.cpp
+@@ -30,6 +30,11 @@ REXCVAR_DEFINE_BOOL(dxbc_switch, true, "GPU/Shader", "Use switch statements in D
+ 
+ REXCVAR_DEFINE_BOOL(dxbc_source_map, false, "GPU/Shader", "Generate source maps for DXBC");
+ 
++REXCVAR_DEFINE_BOOL(ps_position_guest_pixels, false, "GPU/Shader",
++                    "Under resolution scaling, give every host pixel of a guest pixel that guest pixel's position "
++                    "(.0) in the pixel shader, as on the console, instead of positions in steps of 1/scale. Fixes "
++                    "lookup tables drawn from the pixel position (Trials Fusion's color grading)");
++
+ namespace rex::graphics {
+ using namespace ucode;
+ 
+@@ -699,6 +704,9 @@ void DxbcShaderTranslator::StartPixelShader() {
+       a_.OpMul(dxbc::Dest::R(param_gen_temp, resolution_scaled_axes), dxbc::Src::R(param_gen_temp),
+                dxbc::Src::LF(1.0f / draw_resolution_scale_x_, 1.0f / draw_resolution_scale_y_, 1.0f,
+                              1.0f));
++      if (REXCVAR_GET(ps_position_guest_pixels)) {
++        a_.OpRoundNI(dxbc::Dest::R(param_gen_temp, resolution_scaled_axes), dxbc::Src::R(param_gen_temp));
++      }
+     }
+     if (shader_modification.pixel.param_gen_point) {
+       // A point - always front-facing (the upper bit of X is 0), not a line
+-- 
+2.55.0.windows.5
+

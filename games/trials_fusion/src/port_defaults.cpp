@@ -39,6 +39,9 @@ void ApplyPortDefaults() {
   SetCvarDefault("readback_resolve", "fast");
   SetCvarDefault("async_shader_compilation_no_pixel_shader", "true");
   SetCvarDefault("readback_resolve_max_kb", "256");
+  // Above 720p every host pixel of a guest pixel gets that pixel's position: the color grading table is drawn from
+  // the pixel position, and positions between guest pixels made the whole picture pink (SDK patch 0013).
+  SetCvarDefault("ps_position_guest_pixels", "true");
 #if defined(__linux__)
   SetCvarDefault("render_target_path_vulkan", "fbo");
 #endif

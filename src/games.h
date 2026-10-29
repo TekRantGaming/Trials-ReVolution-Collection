@@ -13,7 +13,7 @@ namespace trials {
 // releases: vX, the one players see, with only the portable launcher's zip, and packages-vX with what the
 // launcher downloads: TrialsCollection-vX-windows-x64.zip (its own update), TrialsHD-, TrialsEvolution- and
 // TrialsFusion-vX-windows-x64.zip and SHA256SUMS.txt.
-inline constexpr const char* kCollectionRepo = "TekRantGaming/trials-revolution-collection";
+inline constexpr const char* kCollectionRepo = "TekRantGaming/Trials-ReVolution-Collection";
 inline constexpr const char* kPackagesTagPrefix = "packages-v";
 
 struct GameInfo {

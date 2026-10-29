@@ -4,12 +4,12 @@
 
 ### Trials HD, Trials Evolution and Trials Fusion on PC, running natively, with their DLC, in one launcher made for the couch.
 
-[<img src="https://img.shields.io/badge/Download-Windows%20x64-f06a12?style=for-the-badge&logo=windows&logoColor=white&labelColor=101012" alt="Download for Windows" height="44">](https://github.com/TekRantGaming/trials-revolution-collection/releases/latest)
+[<img src="https://img.shields.io/badge/Download-Windows%20x64-f06a12?style=for-the-badge&logo=windows&logoColor=white&labelColor=101012" alt="Download for Windows" height="44">](https://github.com/TekRantGaming/Trials-ReVolution-Collection/releases/latest)
 &nbsp;
 [<img src="https://img.shields.io/badge/Discord-Join%20the%20community-5865F2?style=for-the-badge&logo=discord&logoColor=white&labelColor=101012" alt="Join the Discord" height="44">](https://discord.gg/8eakYSvBZS)
 
-[![Latest release](https://img.shields.io/github/v/release/TekRantGaming/trials-revolution-collection?style=flat-square&label=release&color=f06a12&labelColor=101012)](https://github.com/TekRantGaming/trials-revolution-collection/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/TekRantGaming/trials-revolution-collection/total?style=flat-square&color=2a8ff2&labelColor=101012)](https://github.com/TekRantGaming/trials-revolution-collection/releases)
+[![Latest release](https://img.shields.io/github/v/release/TekRantGaming/Trials-ReVolution-Collection?style=flat-square&label=release&color=f06a12&labelColor=101012)](https://github.com/TekRantGaming/Trials-ReVolution-Collection/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/TekRantGaming/Trials-ReVolution-Collection/total?style=flat-square&color=2a8ff2&labelColor=101012)](https://github.com/TekRantGaming/Trials-ReVolution-Collection/releases)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-5b7a8c?style=flat-square&labelColor=101012)
 ![Games](https://img.shields.io/badge/games-3-f06a12?style=flat-square&labelColor=101012)
 
@@ -93,7 +93,7 @@ By recompiling the original games into native PC executables, we aim to provide 
 
 **You need:** Windows 10 or 11 (64 bit) with a DirectX 12 graphics card, and the Xbox Live Arcade package of each game you want to play, copied from your own console (see [Which packages you need](#which-packages-you-need)).
 
-1. Download **TrialsCollection-...-windows-x64.zip** from the [latest release](https://github.com/TekRantGaming/trials-revolution-collection/releases/latest) and unzip it anywhere. It holds the launcher and all three games, and everything stays in that folder, so it's portable.
+1. Download **TrialsCollection-...-windows-x64.zip** from the [latest release](https://github.com/TekRantGaming/Trials-ReVolution-Collection/releases/latest) and unzip it anywhere. It holds the launcher and all three games, and everything stays in that folder, so it's portable.
 2. Run **trials_launcher.exe**. It opens in fullscreen on Home. Windows may warn about an unknown publisher the first time: choose **More info**, then **Run anyway**.
 3. Pick a game and press **Play**. The first time, the launcher asks for your copy of that game: it finds packages on your PC by itself (or choose the package file, or a folder it was already extracted to), checks it really is that game and copies the game files next to the game.
 4. Press **Play** again, and from then on it starts straight away.
@@ -254,7 +254,7 @@ Each game's **Saves and install** page backs up your saves and restores them, op
 
 ### Reporting a problem
 
-Please open an [issue](https://github.com/TekRantGaming/trials-revolution-collection/issues) with the game, what happened, your CPU, graphics card and the resolution and frame rate you play at, or ask on the [Discord](https://discord.gg/8eakYSvBZS).
+Please open an [issue](https://github.com/TekRantGaming/Trials-ReVolution-Collection/issues) with the game, what happened, your CPU, graphics card and the resolution and frame rate you play at, or ask on the [Discord](https://discord.gg/8eakYSvBZS).
 
 ## About the games
 
