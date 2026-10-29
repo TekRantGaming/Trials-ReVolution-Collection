@@ -1,0 +1,247 @@
+From 3d95aa2fb2605f85fe5f6a8a0ddac6cebb864e50 Mon Sep 17 00:00:00 2001
+From: TekRantGaming <craigferels896@gmail.com>
+Date: Thu, 29 Oct 2026 06:24:26 +0000
+Subject: [PATCH] D3D12: resolve readback reads the bytes written, and reaches
+ the game sooner
+
+With resolution scaling, the readback copied from the start of the
+destination texture instead of the bytes the resolve wrote. Games that
+resolve into part of a texture got the wrong data: Trials Evolution's
+texture page requests came back nearly empty (about 350 different values
+instead of 23000) and its occlusion depth map never arrived, so texture
+pages were not streamed and objects were culled against an old map.
+Vulkan already read the written range.
+
+readback_resolve fast also handed the game the previous resolve of each
+buffer, two frames old for buffers it alternates between. Each copy now
+goes into guest memory as soon as its submission completes (checked on
+draws, copies, swaps and while waiting for commands), the submission is
+started right after the copy, and a buffer is only read once the GPU has
+finished writing it. readback_resolve_early (on) switches this.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ include/rex/graphics/command_processor.h      |  2 +
+ .../rex/graphics/d3d12/command_processor.h    | 12 +++
+ src/graphics/command_processor.cpp            |  1 +
+ src/graphics/d3d12/command_processor.cpp      | 93 ++++++++++++++++++-
+ 4 files changed, 107 insertions(+), 1 deletion(-)
+
+diff --git a/include/rex/graphics/command_processor.h b/include/rex/graphics/command_processor.h
+index da8e432..89843d7 100644
+--- a/include/rex/graphics/command_processor.h
++++ b/include/rex/graphics/command_processor.h
+@@ -171,6 +171,8 @@ class CommandProcessor {
+ 
+   uint32_t ExecutePrimaryBuffer(uint32_t start_index, uint32_t end_index);
+   virtual void OnPrimaryBufferEnd() {}
++  // Called repeatedly while the command processor waits for new guest commands.
++  virtual void PollWhileIdle() {}
+   void ExecuteIndirectBuffer(uint32_t ptr, uint32_t length);
+   bool ExecutePacket(memory::RingBuffer* reader);
+   bool ExecutePacketType0(memory::RingBuffer* reader, uint32_t packet);
+diff --git a/include/rex/graphics/d3d12/command_processor.h b/include/rex/graphics/d3d12/command_processor.h
+index a5753f5..40070ec 100644
+--- a/include/rex/graphics/d3d12/command_processor.h
++++ b/include/rex/graphics/d3d12/command_processor.h
+@@ -211,6 +211,7 @@ class D3D12CommandProcessor : public CommandProcessor {
+                  uint32_t frontbuffer_height) override;
+ 
+   void OnPrimaryBufferEnd() override;
++  void PollWhileIdle() override;
+ 
+   Shader* LoadShader(xenos::ShaderType shader_type, uint32_t guest_address,
+                      const uint32_t* host_address, uint32_t dword_count) override;
+@@ -382,6 +383,17 @@ class D3D12CommandProcessor : public CommandProcessor {
+     uint64_t last_used_frame = 0;
+   };
+   void EvictOldReadbackBuffers(std::unordered_map<uint64_t, ReadbackBuffer>& buffer_map);
++  // readback_resolve fast: resolve copies waiting for the GPU. Each one goes into guest memory as soon as its
++  // submission completes (checked on every draw, copy and swap, and while waiting for guest commands).
++  struct PendingResolveReadback {
++    uint64_t key;
++    uint32_t index;
++    uint64_t submission;
++    uint32_t address;
++    uint32_t length;
++  };
++  std::vector<PendingResolveReadback> pending_resolve_readbacks_;
++  void DeliverCompletedResolveReadbacks();
+   static constexpr uint32_t kReadbackBufferSizeIncrement = 16 * 1024 * 1024;
+   static constexpr size_t kMaxReadbackBuffers = 256;
+   static constexpr uint64_t kReadbackBufferEvictionAgeFrames = 60;
+diff --git a/src/graphics/command_processor.cpp b/src/graphics/command_processor.cpp
+index 449613d..a72d60f 100644
+--- a/src/graphics/command_processor.cpp
++++ b/src/graphics/command_processor.cpp
+@@ -253,6 +253,7 @@ void CommandProcessor::WorkerThreadMain() {
+         }
+ 
+         rex::thread::MaybeYield();
++        PollWhileIdle();
+         loop_count++;
+         write_ptr_index = write_ptr_index_.load();
+       } while (worker_running_ && pending_fns_.empty() &&
+diff --git a/src/graphics/d3d12/command_processor.cpp b/src/graphics/d3d12/command_processor.cpp
+index dd42dfe..84ba1ee 100644
+--- a/src/graphics/d3d12/command_processor.cpp
++++ b/src/graphics/d3d12/command_processor.cpp
+@@ -45,6 +45,10 @@ REXCVAR_DEFINE_BOOL(d3d12_readback_resolve, false, "GPU/D3D12",
+                     "Read render-to-texture results on the CPU")
+     .lifecycle(rex::cvar::Lifecycle::kHotReload);
+ 
++REXCVAR_DEFINE_BOOL(readback_resolve_early, true, "GPU",
++                    "readback_resolve fast: copy each resolve into guest memory as soon as the GPU has written it, "
++                    "instead of handing the game the previous resolve of that buffer (data two frames old for "
++                    "buffers the game alternates between)");
+ REXCVAR_DEFINE_INT32(readback_resolve_scaled_max_kb, 0, "GPU",
+                      "With resolution scaling, read back only resolves up to this many KB (0: all). Each scaled "
+                      "readback is downscaled first, which is costly; games that read only small results on the CPU "
+@@ -1641,6 +1645,7 @@ void D3D12CommandProcessor::ShutdownContext() {
+ 
+   ui::d3d12::util::ReleaseAndNull(readback_buffer_);
+   readback_buffer_size_ = 0;
++  pending_resolve_readbacks_.clear();
+   for (auto& resolve_readback_pair : readback_buffers_) {
+     auto& readback = resolve_readback_pair.second;
+     for (uint32_t i = 0; i < 2; ++i) {
+@@ -1955,6 +1960,7 @@ void D3D12CommandProcessor::IssueSwap(uint32_t frontbuffer_ptr, uint32_t frontbu
+                                       uint32_t frontbuffer_height) {
+   SCOPE_profile_cpu_f("gpu");
+   GetDevFrameLog().OnSwap();
++  DeliverCompletedResolveReadbacks();
+   vertex_buffers_in_sync_[0] = 0;
+   vertex_buffers_in_sync_[1] = 0;
+ 
+@@ -2317,6 +2323,40 @@ void D3D12CommandProcessor::IssueSwap(uint32_t frontbuffer_ptr, uint32_t frontbu
+   EndSubmission(true);
+ }
+ 
++void D3D12CommandProcessor::PollWhileIdle() {
++  if (!pending_resolve_readbacks_.empty()) {
++    DeliverCompletedResolveReadbacks();
++  }
++}
++
++void D3D12CommandProcessor::DeliverCompletedResolveReadbacks() {
++  if (pending_resolve_readbacks_.empty()) {
++    return;
++  }
++  const uint64_t completed = submission_fence_->GetCompletedValue();
++  size_t kept = 0;
++  for (size_t i = 0; i < pending_resolve_readbacks_.size(); ++i) {
++    const PendingResolveReadback& pending = pending_resolve_readbacks_[i];
++    if (pending.submission > completed) {
++      pending_resolve_readbacks_[kept++] = pending;
++      continue;
++    }
++    auto it = readback_buffers_.find(pending.key);
++    if (it == readback_buffers_.end()) {
++      continue;
++    }
++    ReadbackBuffer& rb = it->second;
++    if (rb.submission_written[pending.index] != pending.submission || !rb.mapped_data[pending.index] ||
++        rb.written_size[pending.index] < pending.length) {
++      continue;
++    }
++    if (uint8_t* destination = memory_->TranslatePhysical(pending.address)) {
++      std::memcpy(destination, rb.mapped_data[pending.index], pending.length);
++    }
++  }
++  pending_resolve_readbacks_.resize(kept);
++}
++
+ void D3D12CommandProcessor::OnPrimaryBufferEnd() {
+   if (REXCVAR_GET(d3d12_submit_on_primary_buffer_end) && submission_open_ &&
+       CanEndSubmissionImmediately()) {
+@@ -2367,6 +2407,10 @@ bool D3D12CommandProcessor::IssueDraw(xenos::PrimitiveType primitive_type, uint3
+   ID3D12Device* device = GetD3D12Provider().GetDevice();
+   const RegisterFile& regs = *register_file_;
+ 
++  if (!pending_resolve_readbacks_.empty()) {
++    DeliverCompletedResolveReadbacks();
++  }
++
+   xenos::EdramMode edram_mode = regs.Get<reg::RB_MODECONTROL>().edram_mode;
+   if (edram_mode == xenos::EdramMode::kCopy) {
+     // Special copy handling.
+@@ -3188,6 +3232,19 @@ bool D3D12CommandProcessor::IssueCopy_ReadbackResolvePath() {
+     if (!scaled_resolve_buffer) {
+       return true;
+     }
++    // The current range starts at the destination's base, but the resolve may write further in (a rectangle with
++    // an offset, or one half of a texture the game alternates between). Every guest byte has scale_x * scale_y
++    // scaled bytes, so read the scaled copy of exactly the bytes written.
++    const uint32_t scale_area =
++        texture_cache_->draw_resolution_scale_x() * texture_cache_->draw_resolution_scale_y();
++    const uint64_t written_scaled_start = uint64_t(written_address) * scale_area;
++    const uint64_t written_scaled_length = uint64_t(written_length) * scale_area;
++    if (written_scaled_start < scaled_address ||
++        written_scaled_start + written_scaled_length > scaled_address + scaled_length) {
++      return true;
++    }
++    scaled_address = written_scaled_start;
++    scaled_length = uint32_t(written_scaled_length);
+     uint64_t scaled_buffer_base = uint64_t(scaled_resolve_buffer_index) << 30;
+     if (scaled_address < scaled_buffer_base) {
+       return true;
+@@ -3254,7 +3311,31 @@ bool D3D12CommandProcessor::IssueCopy_ReadbackResolvePath() {
+                                                written_address, written_length);
+   }
+ 
++  rb.submission_written[write_index] = submission_current_;
++  rb.written_size[write_index] = written_length;
++
+   ReadbackResolveMode readback_mode = GetReadbackResolveMode(REXCVAR_GET(d3d12_readback_resolve));
++  if (readback_mode == ReadbackResolveMode::kFast && REXCVAR_GET(readback_resolve_early)) {
++    // Copies still waiting for the GPU are delivered in order, each newer than the last. Only one waiting in the
++    // buffer this copy reuses is dropped (the GPU is about to overwrite it).
++    size_t kept = 0;
++    for (size_t i = 0; i < pending_resolve_readbacks_.size(); ++i) {
++      const PendingResolveReadback& pending = pending_resolve_readbacks_[i];
++      if (pending.key == resolve_key && pending.index == write_index) {
++        continue;
++      }
++      pending_resolve_readbacks_[kept++] = pending;
++    }
++    pending_resolve_readbacks_.resize(kept);
++    pending_resolve_readbacks_.push_back(
++        {resolve_key, write_index, submission_current_, written_address, written_length});
++    rb.current_index = 1 - rb.current_index;
++    // Start the GPU on everything up to this copy now, so the data reaches the game as early as possible.
++    if (submission_open_ && CanEndSubmissionImmediately()) {
++      EndSubmission(false);
++    }
++    return true;
++  }
+   bool use_delayed_sync =
+       readback_mode == ReadbackResolveMode::kFast || readback_mode == ReadbackResolveMode::kSome;
+   uint32_t read_index = write_index;
+@@ -3266,13 +3347,23 @@ bool D3D12CommandProcessor::IssueCopy_ReadbackResolvePath() {
+ 
+   bool is_cache_miss = false;
+   if (use_delayed_sync && (!rb.buffers[read_index] || written_length > rb.sizes[read_index] ||
+-                           !rb.mapped_data[read_index])) {
++                           !rb.mapped_data[read_index] || !rb.submission_written[read_index] ||
++                           written_length > rb.written_size[read_index])) {
+     is_cache_miss = true;
+     read_index = write_index;
+     if (!AwaitAllQueueOperationsCompletion()) {
+       return true;
+     }
+   }
++  // The previous frame's copy is read without waiting, but only once the GPU has really written it: when the GPU
++  // runs behind (high resolutions, heavy upscaling) the buffer could still be in flight, and the game got half
++  // written occlusion depth and texture streaming requests (objects vanishing for a frame, textures popping).
++  if (use_delayed_sync && !is_cache_miss) {
++    CheckSubmissionFence(0);
++    if (rb.submission_written[read_index] > submission_completed_) {
++      CheckSubmissionFence(rb.submission_written[read_index]);
++    }
++  }
+ 
+   bool should_copy = (readback_mode == ReadbackResolveMode::kSome) ? is_cache_miss : true;
+   if (should_copy && rb.buffers[read_index] && written_length <= rb.sizes[read_index] &&
+-- 
+2.55.0.windows.5
+
