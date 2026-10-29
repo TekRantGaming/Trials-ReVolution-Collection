@@ -1,0 +1,35 @@
+From 99da20c2c7d1833578ba9eef66078d16f635fed9 Mon Sep 17 00:00:00 2001
+From: TekRantGaming <craigferels896@gmail.com>
+Date: Thu, 29 Oct 2026 04:14:53 +0000
+Subject: [PATCH] Content: log each marketplace package a game opens
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/system/xam/content_manager.cpp | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/src/system/xam/content_manager.cpp b/src/system/xam/content_manager.cpp
+index bd6c797..50517e0 100644
+--- a/src/system/xam/content_manager.cpp
++++ b/src/system/xam/content_manager.cpp
+@@ -17,6 +17,7 @@
+ #include <fmt/format.h>
+ 
+ #include <rex/filesystem.h>
++#include <rex/logging.h>
+ #include <rex/filesystem/devices/host_path_device.h>
+ #include <rex/filesystem/devices/stfs_container_device.h>
+ #include <rex/string.h>
+@@ -180,6 +181,9 @@ std::unique_ptr<ContentPackage> ContentManager::ResolvePackage(
+     return nullptr;
+   }
+   auto package = std::make_unique<ContentPackage>(kernel_state_, root_name, data, package_path);
++  if (data.content_type == XContentType::kMarketplaceContent) {
++    REXLOG_INFO("Content: opened add-on {} as {}:", data.file_name(), root_name);
++  }
+   return package;
+ }
+ 
+-- 
+2.55.0.windows.5
+
