@@ -78,6 +78,13 @@ void DrawDlc(App& app, int g) {
     for (size_t i = 0; i < list.size(); ++i) {
       const DlcInfo& dlc = list[i];
       const bool installed = DlcInstalled(game, dlc);
+      if (dlc.unsupported && !installed) {  // still removable if it was installed before
+        if (r.Button(dlc.name, dlc.unsupported, "Not supported")) {
+          u.dlc_message = std::string(dlc.name) + ": " + dlc.unsupported;
+          u.dlc_error = true;
+        }
+        continue;
+      }
       const std::string help = std::string(installed ? "Installed. " : "") + dlc.about;
       if (r.Button(dlc.name, help, installed ? "Remove" : "Install") && !DlcPickerOpen()) {
         if (installed) {

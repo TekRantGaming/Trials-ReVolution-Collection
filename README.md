@@ -34,7 +34,7 @@
 | | | |
 | :--- | :--- | :--- |
 | 🏍️ **All 3 games** in one launcher | 🖥️ **One resolution setting**, up to 4K; Trials HD at 60, 90, 120 or an **unlimited** frame rate | ✨ **AMD FSR 1 and NVIDIA NIS** upscaling to your resolution |
-| 📀 **DLC for all 3 games**: Big Pack, Riders of Doom, every Fusion pack and more, from your own packages | 🎮 **Any controller**, or the keyboard with your own keys | 🏆 **Achievements** with notifications in game |
+| 📀 **DLC for all 3 games**: Big Pack, Riders of Doom, Fusion's first content packs and more, from your own packages | 🎮 **Any controller**, or the keyboard with your own keys | 🏆 **Achievements** with notifications in game |
 | 📦 **Install from your own packages**, found on your PC by themselves | 🔓 **The full game, always**: never the trial version | 🔄 **Updates itself** and every game |
 | 💾 **Save backups** and restore in one click | 🛋️ **A console style dashboard** with sounds, made for a controller | 🪟 **Borderless fullscreen**, windowed, any monitor |
 | 🚂 **Add to Steam** with its own artwork, ready for Big Picture | ↩️ **Back to the launcher** any time: hold Back + Start, or Esc | 💬 **[Join the Discord](https://discord.gg/8eakYSvBZS)** right from Home |
@@ -124,9 +124,11 @@ Each game's page has **Add DLC** next to Play. It lists that game's DLC; press *
 | --- | --- |
 | Trials HD | Big Pack, Big Thrills |
 | Trials Evolution | Riders of Doom, Origin of Pain |
-| Trials Fusion | Riders of the Rustland, Empire of the Sky, Welcome to the Abyss, Fire in the Deep, Fault One Zero, After the Incident, Fallen Angel Bike Upgrade, and the Exclusive Content, Uplay Rewards and Season Pass Unlocks (a profile file, `58411401.gpd`) |
+| Trials Fusion | Riders of the Rustland, Empire of the Sky, Welcome to the Abyss, Fallen Angel Bike Upgrade, and the Exclusive Content, Uplay Rewards and Season Pass Unlocks (a profile file, `58411401.gpd`). Fire in the Deep, Fault One Zero and After the Incident are listed but not supported yet |
 
 The Fusion unlocks are merged into your profile's settings, keeping your own options and progress; your settings are backed up first, and Remove puts them back.
+
+Fusion's content packs 4 to 6 came out after the game update this recompilation is built from, and the game crashes while loading with any of them installed, so the launcher does not install them yet.
 
 ## The launcher
 
@@ -230,7 +232,7 @@ Each game's **Saves and install** page backs up your saves and restores them, op
 | Resolution | 1280 x 720 (Evolution and Fusion a little less) | your choice, up to 4K |
 | Frame rate | 60 fps | Trials HD 60, 90, 120 or unlimited; Evolution and Fusion 60 |
 | Upscaling | none | AMD FSR 1 or NVIDIA NIS, to your resolution |
-| Downloadable content | Xbox Live | all of it, from your own packages |
+| Downloadable content | Xbox Live | from your own packages (Fusion packs 4 to 6 not yet) |
 | Anti aliasing | console | FXAA, or higher resolutions |
 | Texture filtering | console | up to 16x |
 | Display | TV | borderless fullscreen or windowed, any monitor |
@@ -250,7 +252,7 @@ Each game's **Saves and install** page backs up your saves and restores them, op
 ### Known limits
 
 - **No online play**: leaderboards, multiplayer and Track Central need Xbox Live.
-- **No title updates** yet: the games run as their first release.
+- **No title updates** yet: the games run as their first release, so Trials Fusion's content packs 4 to 6 (which need a later update) can't be installed.
 - **Trials Evolution and Trials Fusion run at 60 FPS.** Their engines move everything forward by one fixed step each frame, so a higher frame rate would make the whole game run faster. Changing that means separating the games' updates from their drawing and working out the frames in between, which is closer to a decompilation than this recompilation. Forks and pull requests that take it on are welcome.
 
 ### Reporting a problem

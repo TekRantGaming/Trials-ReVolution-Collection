@@ -18,6 +18,7 @@ struct DlcInfo {
   const char* file;          // the package's file name (in Content/<profile>/<title ID>/00000002): its content folder
   const char* about;         // one line about it
   bool profile_unlocks;      // not a package: a profile file (.gpd) whose title settings unlock items
+  const char* unsupported = nullptr;  // why it can't be installed yet (the game as recompiled can't load it)
 };
 
 const std::vector<DlcInfo>& DlcFor(const GameInfo& game);

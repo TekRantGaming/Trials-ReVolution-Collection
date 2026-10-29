@@ -19,6 +19,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <regex>
 #include <string_view>
 
 #if defined(_WIN32)
@@ -108,6 +109,25 @@ std::array<uint8_t, 0x148> ContentHeader(const GameInfo& game, const std::string
   return h;
 }
 
+// Trials Fusion's content packs number their files (data_misc1.pak for pack 1), but the game as released asks each
+// pack's drive for the unnumbered names (content2:\data\data_misc.pak) and stops with "downloadable content not
+// accessible" without them. Each numbered file gets its unnumbered name too: a hard link (no extra space), else a
+// copy.
+void AddUnnumberedPaks(const fs::path& package_dir) {
+  static const std::regex kNumbered("(data|data_loc|data_misc|data_shaders|data_tex)[0-9]+\\.pak",
+                                    std::regex::icase);
+  std::error_code ec;
+  for (const fs::path& f : FilesIn(package_dir / "data")) {
+    std::smatch m;
+    const std::string name = Utf8(f.filename());
+    if (!std::regex_match(name, m, kNumbered)) continue;
+    const fs::path alias = f.parent_path() / (m[1].str() + ".pak");
+    if (fs::exists(alias, ec)) continue;
+    fs::create_hard_link(f, alias, ec);
+    if (ec) fs::copy_file(f, alias, ec);
+  }
+}
+
 std::string InstallPackage(trg::Task& task, const GameInfo& game, const DlcInfo& dlc, const fs::path& file) {
   stfs::StfsPackage pkg;
   std::string error;
@@ -142,6 +162,7 @@ std::string InstallPackage(trg::Task& task, const GameInfo& game, const DlcInfo&
     fs::remove_all(staging, ec);
     return task.cancelled() ? std::string("Cancelled.") : "The package could not be read: " + error;
   }
+  AddUnnumberedPaks(staging);
   fs::remove_all(dest, ec);
   fs::rename(staging, dest, ec);
   if (ec) return "The files were copied, but the DLC folder could not be finished: " + ec.message();
@@ -235,6 +256,13 @@ const std::vector<DlcInfo>& DlcFor(const GameInfo& game) {
       {"Origin of Pain", "Trials Evolution - Origin of Pain", "1F9CD4031B4A567548866C32B0D9049EA512524558",
        "New tracks, skill games and rider gear.", false},
   };
+  // Content packs 4 to 6 came after the game update this recompilation is built from: with any of them installed
+  // the game crashes while loading (read of guest address 0x20 after it looks for that pack's localization file).
+  // Packs 1 to 3 and the bike work, on their own and together.
+  static const char* kNeedsUpdate =
+      "Not supported yet. This pack needs a later update of Trials Fusion than the one this recompilation is built "
+      "from, and the game crashes while loading with it installed. Content packs 1 to 3 and the Fallen Angel bike "
+      "work.";
   static const std::vector<DlcInfo> kFusion = {
       {"Riders of the Rustland", "Trials Fusion - Content Pack 1", "492FB00BD448292BA5B3907CE9DF480EC3F1768358",
        "Content pack 1: new tracks.", false},
@@ -243,11 +271,11 @@ const std::vector<DlcInfo>& DlcFor(const GameInfo& game) {
       {"Welcome to the Abyss", "Trials Fusion - Content Pack 3", "C1C476F2BFFA6118E85AB672E514BA60ACEE8E3958",
        "Content pack 3: new tracks.", false},
       {"Fire in the Deep", "Trials Fusion - Content Pack 4", "B5D963C43AF4127DC076FAE9A9FA8B10F2426B1758",
-       "Content pack 4: new tracks.", false},
+       "Content pack 4: new tracks.", false, kNeedsUpdate},
       {"Fault One Zero", "Trials Fusion - Content Pack 5", "D1AEC708EE0B70B41104F2BD31C2B059F11027F158",
-       "Content pack 5: new tracks.", false},
+       "Content pack 5: new tracks.", false, kNeedsUpdate},
       {"After the Incident", "Trials Fusion - Content Pack 6", "58ED7EA61ACF5F84CF1B4113D21C165FFE8F6F0D58",
-       "Content pack 6: new tracks.", false},
+       "Content pack 6: new tracks.", false, kNeedsUpdate},
       {"Fallen Angel Bike Upgrade", "Fallen Angel Bike Upgrade", "0015CB7C24BBC9742903FC47E0CE5D3058D9365D58",
        "The Fallen Angel bike upgrade.", false},
       {"Exclusive Content, Uplay Rewards and Season Pass Unlocks", "", "",
@@ -272,6 +300,7 @@ bool DlcInstalled(const GameInfo& game, const DlcInfo& dlc) {
 }
 
 std::string InstallDlc(trg::Task& task, const GameInfo& game, const DlcInfo& dlc, const std::string& path) {
+  if (dlc.unsupported) return dlc.unsupported;
   const fs::path chosen = fs::u8path(path);
   std::error_code ec;
   if (!fs::exists(chosen, ec)) return "That file was not found.";
