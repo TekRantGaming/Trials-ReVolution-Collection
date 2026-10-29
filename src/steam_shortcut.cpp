@@ -33,11 +33,11 @@ namespace {
 
 namespace fs = std::filesystem;
 
-constexpr const char* kAppName = "Trials The Recompilation Collection";
+constexpr const char* kAppName = "Trials: ReVolution Collection";
 
 // The collection's own artwork (the repo's docs/steam), each saved under the shortcut's app ID with the suffix
 // Steam looks for.
-constexpr const char* kArtBase = "https://raw.githubusercontent.com/TekRantGaming/trials-recompilation-collection/main/docs/steam/";
+constexpr const char* kArtBase = "https://raw.githubusercontent.com/TekRantGaming/trials-revolution-collection/main/docs/steam/";
 constexpr struct {
   const char* suffix;
   const char* file;

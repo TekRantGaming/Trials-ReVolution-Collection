@@ -1,5 +1,6 @@
 # The owner's game packages, what is extracted from them and the code generated from them: never commit.
 /Trials-*-Recomp/
+/DLC/
 *.xex
 *.pak
 *.xwb

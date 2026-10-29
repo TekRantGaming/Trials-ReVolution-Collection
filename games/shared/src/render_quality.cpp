@@ -2,10 +2,11 @@
 // King Kong Recompiled 1.9.x (settings.cpp ApplyRenderPreset and
 // ApplyRuntimeOverrides).
 //
-// trials_render_quality: custom (resolution_scale as set, the default), native,
-// quality, balanced or performance. A mode picks the whole number render
-// scale (720p steps) from the output height: scale = round(height / ratio /
-// 720), Performance one step below Quality where there is one. The scale is
+// trials_render_quality: custom (no upscaler: drawn natively, the default),
+// native, quality, balanced or performance. A mode picks the whole number
+// render scale (720p steps) from the output height, the player's resolution
+// (trials_resolution) when set: scale = round(height / ratio / 720),
+// Performance one step below Quality where there is one. The scale is
 // set as the DEFAULT of draw_resolution_scale_x/_y, so it is never saved, and
 // a leftover resolution_scale is cleared. Runs in OnFinalizePaths: after the
 // GPU plugin and the window exist, before the GPU starts.
@@ -29,6 +30,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <string>
 #include <string_view>
@@ -39,6 +41,10 @@
 
 REXCVAR_DEFINE_STRING(trials_render_quality, "custom", "Collection",
                       "Render resolution from the upscaler mode: custom, native, quality, balanced, performance");
+// The player's resolution (WIDTHxHEIGHT in real pixels, empty for the screen or window): the launcher's one Resolution
+// setting. The render scale is worked out from it, and AMD FSR 1 and NVIDIA NIS upscale to it
+// (present_upscale_resolution), not to the screen.
+REXCVAR_DEFINE_STRING(trials_resolution, "", "Collection", "Resolution the game draws for (WIDTHxHEIGHT; empty: the screen)");
 
 namespace trials {
 
@@ -81,6 +87,14 @@ void ApplyRenderQuality(rex::ui::Window* window) {
   SetCvarDefault("render_target_path_d3d12", "rov");
 #endif
 
+  int chosen_w = 0, chosen_h = 0;
+  if (std::sscanf(REXCVAR_GET(trials_resolution).c_str(), "%dx%d", &chosen_w, &chosen_h) == 2 && chosen_w > 0 &&
+      chosen_h > 0) {
+    rex::cvar::SetFlagByName("present_upscale_resolution", REXCVAR_GET(trials_resolution));
+  } else {
+    chosen_w = chosen_h = 0;
+  }
+
 #if defined(TRIALS_ORIGINAL_RESOLUTION)
   // Trials Evolution and Trials Fusion always draw at the console's 720p: above it their post processing, texture
   // streaming and occlusion read resolves the renderer stores scaled, and the colors, textures and scenery came out
@@ -95,7 +109,7 @@ void ApplyRenderQuality(rex::ui::Window* window) {
 #endif
 
   const std::string mode = REXCVAR_GET(trials_render_quality);
-  // Output height in physical pixels: the screen in fullscreen, else the window.
+  // Output height in physical pixels: the chosen resolution, else the screen in fullscreen, else the window.
   // The window is not sized yet here, so windowed uses the window height setting (logical units, times the
   // Windows display scale), 720 when it is automatic.
 #if defined(_WIN32)
@@ -113,9 +127,11 @@ void ApplyRenderQuality(rex::ui::Window* window) {
     height = int(std::lround(logical * (content_scale > 0 ? content_scale : 1.0f)));
 #endif
   }
+  if (chosen_h > 0) height = chosen_h;
   (void)window;
-  const int scale = ScaleFor(mode, height);
-  if (scale <= 0) return;  // custom: the player's resolution_scale is used as is
+  // Without an upscaler (custom) the game draws natively at the resolution: there is no second resolution setting.
+  const int scale = ScaleFor(mode == "custom" ? std::string("native") : mode, height);
+  if (scale <= 0) return;
   rex::cvar::ResetToDefault("resolution_scale");
   for (const char* axis : {"draw_resolution_scale_x", "draw_resolution_scale_y"}) {
     SetCvarDefault(axis, std::to_string(scale));

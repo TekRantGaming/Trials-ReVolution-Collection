@@ -134,7 +134,7 @@ bool TomlSettings::Save() {
     if (written.count(k) || !dirty_.count(k)) continue;
     if (!header) {
       out.push_back("");
-      out.push_back("# Set from Trials The Recompilation Collection launcher");
+      out.push_back("# Set from Trials: ReVolution Collection launcher");
       header = true;
     }
     out.push_back(k + " = " + TomlValue(v));

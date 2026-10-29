@@ -11,9 +11,9 @@ BEGIN
     BLOCK "080904B0"
     BEGIN
       VALUE "CompanyName", "TekRantGaming"
-      VALUE "FileDescription", "Trials The Recompilation Collection"
+      VALUE "FileDescription", "Trials: ReVolution Collection"
       VALUE "FileVersion", TRIALS_VERSION
-      VALUE "ProductName", "Trials The Recompilation Collection"
+      VALUE "ProductName", "Trials: ReVolution Collection"
       VALUE "ProductVersion", TRIALS_VERSION
       VALUE "OriginalFilename", "trials_launcher.exe"
     END

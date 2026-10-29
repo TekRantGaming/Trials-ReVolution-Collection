@@ -245,11 +245,10 @@ std::vector<Section> GameSections(App& app, int g) {
   s.push_back({"Display", [&st, g](Rows& r) {
     r.Choice("Window mode", "Fullscreen fills your screen. Windowed opens a window you can move and resize.",
              "fullscreen", "true", {{"true", "Fullscreen"}, {"false", "Windowed"}});
-    // The windowed size: window_width and window_height together. The SDK keeps them in logical pixels (Windows
-    // display scaling applies), so the sizes offered are real pixels converted with the display scale, and only
-    // those that fit the screen, as in King Kong Recompiled. The game's upscaler mode then works from that size
-    // (render_quality.cpp). Not the SDK's "resolution" preset, which also changes the game's own video mode (the
-    // guest stays at 1280 x 720).
+    // Resolution: the one size setting. The game draws for it (trials_resolution, real pixels: render_quality.cpp
+    // works out the render scale from it and AMD FSR 1 and NVIDIA NIS upscale to it, not to the screen) and a window
+    // has that size (window_width and window_height, which the SDK keeps in logical pixels, so they are converted
+    // with the display scale). Only sizes that fit the screen are offered.
     {
 #if defined(_WIN32)
       const double scale = GetDpiForSystem() / 96.0;
@@ -259,22 +258,29 @@ std::vector<Section> GameSections(App& app, int g) {
       SDL_DisplayMode dm{};
       const int screen_w = SDL_GetDesktopDisplayMode(0, &dm) == 0 ? dm.w : 1 << 16;
       const int screen_h = SDL_GetDesktopDisplayMode(0, &dm) == 0 ? dm.h : 1 << 16;
-      static const int kSizes[][2] = {{0, 0}, {1280, 720}, {1600, 900}, {1920, 1080}, {2560, 1440}, {3200, 1800},
-                                      {3840, 2160}};
-      const int w = int(st.GetInt("window_width", 0) * scale + 0.5), h = int(st.GetInt("window_height", 0) * scale + 0.5);
+      static const int kSizes[][2] = {{0, 0},       {1280, 720},  {1600, 900},  {1920, 1080},
+                                      {2560, 1440}, {3200, 1800}, {3840, 2160}};
+      int w = 0, h = 0;
+      if (std::sscanf(st.Get("trials_resolution", "").c_str(), "%dx%d", &w, &h) != 2) w = h = 0;
       std::vector<std::array<int, 2>> sizes;
       std::vector<std::string> names;
-      int cur = -1;
+      int cur = 0;
       for (const auto& sz : kSizes) {
-        if (sz[0] && (sz[0] >= screen_w || sz[1] >= screen_h)) continue;  // must fit with its frame
-        if (std::abs(sz[0] - w) <= 2 && std::abs(sz[1] - h) <= 2) cur = int(sizes.size());
+        if (sz[0] && (sz[0] > screen_w || sz[1] > screen_h)) continue;
+        if (sz[0] == w && sz[1] == h) cur = int(sizes.size());
         sizes.push_back({sz[0], sz[1]});
-        names.push_back(sz[0] ? std::to_string(sz[0]) + " \xC3\x97 " + std::to_string(sz[1]) : "Automatic");
+        names.push_back(sz[0] ? std::to_string(sz[0]) + " \xC3\x97 " + std::to_string(sz[1])
+                              : "Automatic (" + std::to_string(screen_w) + " \xC3\x97 " + std::to_string(screen_h) +
+                                    ")");
       }
-      if (r.ChoiceIndex("Window size", "The size of the window when the game is windowed, in pixels. The upscaler "
-                        "works from this size. Fullscreen always uses the whole screen.", cur, names, 0)) {
-        st.SetInt("window_width", int(sizes[cur][0] / scale + 0.5));
-        st.SetInt("window_height", int(sizes[cur][1] / scale + 0.5));
+      if (r.ChoiceIndex("Resolution", "The resolution the game draws for. The upscaler scales the picture to it, "
+                        "and in a window the window has this size. Automatic uses your screen.", cur, names, 0)) {
+        const auto& sz = sizes[cur];
+        st.Set("trials_resolution", sz[0] ? std::to_string(sz[0]) + "x" + std::to_string(sz[1]) : std::string());
+        // A size that fills the screen opens as a window with its frame just inside it.
+        const bool fits = sz[0] && sz[0] < screen_w && sz[1] < screen_h;
+        st.SetInt("window_width", fits ? int(sz[0] / scale + 0.5) : 0);
+        st.SetInt("window_height", fits ? int(sz[1] / scale + 0.5) : 0);
         st.Save();
       }
     }
@@ -290,29 +296,27 @@ std::vector<Section> GameSections(App& app, int g) {
         st.Save();
       }
     }
-    // trials_frame_rate: Trials HD draws at this rate in its fps_unlock.cpp (0 is no limit); 60 by default.
-    // Evolution and Fusion always run at 60: their game speed follows the frame rate (frame_limit.cpp).
+    // trials_frame_rate: Trials HD draws at this rate in its fps_unlock.cpp (0 is no limit); 60, the original, by
+    // default. Evolution and Fusion always run at 60: their game speed follows the frame rate (frame_limit.cpp).
     if (std::string(Games()[g].id) != "trials_hd") {
       r.Info("Frame rate", "60, as on the Xbox 360");
     } else {
-      r.Choice("Frame rate", "60 is how the game ran on the Xbox 360. Higher is smoother: the physics keeps its 60 "
-               "updates a second and each frame is drawn between them. No limit runs as fast as your PC allows. Above "
-               "60, turn Vertical sync off (a G-SYNC or FreeSync screen still stops tearing): with it on, a frame that "
-               "misses the screen's refresh waits for the next one, and the rate can drop to half.",
-               "trials_frame_rate", "60",
-               {{"30", "30"}, {"60", "60"}, {"120", "120"}, {"144", "144"}, {"165", "165"}, {"240", "240"},
-                {"0", "No limit"}});
+      r.Choice("Frame rate", "Original is the 60 the game ran at on the Xbox 360. Higher is smoother: the physics "
+               "keeps its 60 updates a second and each frame is drawn between them. Unlimited runs as fast as your PC "
+               "allows. Above 60, turn Vertical sync off (a G-SYNC or FreeSync screen still stops tearing): with it "
+               "on, a frame that misses the screen's refresh waits for the next one, and the rate can drop to half.",
+               "trials_frame_rate", "60", {{"60", "Original (60)"}, {"90", "90"}, {"120", "120"}, {"0", "Unlimited"}});
     }
     r.Toggle("Keep the original shape", "Keeps the picture 16:9 with black bars instead of stretching it to fill "
              "a screen of another shape.", "present_letterbox", true);
   }});
 
   s.push_back({"Graphics", [&st, g](Rows& r) {
-    // Upscaler and its mode as in King Kong Recompiled 1.9.x: the mode picks
-    // the render scale from the screen when the game starts (render_quality.cpp in each game); with the upscaler
-    // off the render resolution is chosen directly.
-    if (r.Choice("Upscaler", "Scales the picture up to your screen. AMD FSR 1 works on any graphics card, NVIDIA NIS "
-                 "suits NVIDIA cards. Off draws at the render resolution you choose.", "present_effect", "bilinear",
+    // Upscaler and its mode, as in King Kong Recompiled 1.9.x: the mode picks the render scale from the player's
+    // Resolution when the game starts (render_quality.cpp in each game). With the upscaler off the game draws at the
+    // Resolution itself.
+    if (r.Choice("Upscaler", "Scales the picture up to your resolution. AMD FSR 1 works on any graphics card, NVIDIA "
+                 "NIS suits NVIDIA cards. Off draws the game at your resolution.", "present_effect", "bilinear",
                  {{"bilinear", "Off"}, {"fsr", "AMD FSR 1"}, {"nis", "NVIDIA NIS"}})) {
       const bool on = st.Get("present_effect", "bilinear") != "bilinear";
       if (on && st.Get("trials_render_quality", "custom") == "custom") st.Set("trials_render_quality", "quality");
@@ -322,29 +326,28 @@ std::vector<Section> GameSections(App& app, int g) {
     if (std::string(Games()[g].id) != "trials_hd") {  // render_quality.cpp: TRIALS_ORIGINAL_RESOLUTION
       r.Info("Render resolution", "720p, as on the Xbox 360");
       r.Paragraph("Drawn larger, this game's colors, textures and scenery break, so it keeps its original resolution. "
-                  "The upscaler takes the picture to your screen.");
+                  "The upscaler takes the picture to your resolution.");
     } else if (st.Get("present_effect", "bilinear") != "bilinear") {
-      SDL_DisplayMode dm{};
-      const int screen_h = SDL_GetDesktopDisplayMode(0, &dm) == 0 ? dm.h : 1080;
-      const int scale = RenderScaleFor(st.Get("trials_render_quality", "quality"), screen_h);
-      const std::string draws = scale > 0 ? "On your " + std::to_string(screen_h) + "p screen the game draws at " +
+      int out_h = 0, out_w = 0;
+      if (std::sscanf(st.Get("trials_resolution", "").c_str(), "%dx%d", &out_w, &out_h) != 2 || out_h <= 0) {
+        SDL_DisplayMode dm{};
+        out_h = SDL_GetDesktopDisplayMode(0, &dm) == 0 ? dm.h : 1080;
+      }
+      const int scale = RenderScaleFor(st.Get("trials_render_quality", "quality"), out_h);
+      const std::string draws = scale > 0 ? "At your " + std::to_string(out_h) + "p resolution the game draws at " +
                                                 std::to_string(1280 * scale) + " \xC3\x97 " +
                                                 std::to_string(720 * scale) + "."
                                           : std::string();
-      r.Choice("Upscaler mode", "Quality draws closest to your screen, Performance draws smaller for speed. The "
+      r.Choice("Upscaler mode", "Quality draws closest to your resolution, Performance draws smaller for speed. The "
                "game draws in steps of its original 720p, so two modes can give the same size. " + draws,
                "trials_render_quality", "quality",
                {{"native", "Native"}, {"quality", "Quality"}, {"balanced", "Balanced"}, {"performance", "Performance"}});
-    } else {
-      r.Choice("Render resolution", "Draws the game at a higher resolution for a sharper picture. Higher settings "
-               "need a faster graphics card.", "resolution_scale", "1",
-               {{"1", "Original (720p)"}, {"2", "2x (1440p)"}, {"3", "3x (4K)"}, {"4", "4x"}, {"5", "5x"},
-                {"6", "6x"}});
     }
     if (std::string(Games()[g].id) == "trials_hd")  // games/trials_hd/src/dof_option.cpp
       r.Toggle("Depth of field", "Blurs the background behind the track, as on the Xbox 360. Off keeps the whole "
                "picture sharp.", "trials_depth_of_field", true);
-    r.Choice("Anti aliasing", "Smooths jagged edges.", "swap_post_effect", "fxaa",
+    r.Choice("Anti aliasing", "FXAA smooths jagged edges. FXAA strong smooths more, a little softer.", "swap_post_effect",
+             "fxaa",
              {{"none", "Off"}, {"fxaa", "FXAA"}, {"fxaa_extreme", "FXAA strong"}});
     r.Choice("Texture filtering", "Keeps ground and wall textures sharp when seen at an angle.",
              "anisotropic_override", "3",

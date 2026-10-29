@@ -37,6 +37,7 @@ struct Picker {
   std::mutex mu;
   bool open = false, done = false;
   int game = -1;
+  int tag = 0;       // 0: the install screen's; above 0: the DLC page's (the add-on's number plus one)
   std::string path;  // the chosen file; empty when cancelled
 #if defined(_WIN32)
   HWND dialog = nullptr;  // the picker's window, once it is showing
@@ -139,13 +140,14 @@ std::string ShowPicker(HWND owner, const std::wstring& title, bool folder) {
 }
 #endif
 
-void OpenPicker(SDL_Window* owner, int game, const std::string& title, bool folder) {
+void OpenPicker(SDL_Window* owner, int game, const std::string& title, bool folder, int tag = 0) {
   {
     std::lock_guard<std::mutex> lock(g_picker.mu);
     if (g_picker.open) return;
     g_picker.open = true;
     g_picker.done = false;
     g_picker.game = game;
+    g_picker.tag = tag;
     g_picker.path.clear();
 #if defined(_WIN32)
     g_picker.dialog = nullptr;
@@ -234,6 +236,22 @@ void PackageCard(const GameInfo& game, ImVec2 a, float w) {
 
 }  // namespace
 
+// The same picker for the DLC page (dlc_screen.cpp): its answers carry the add-on's tag.
+void OpenDlcPicker(SDL_Window* owner, int game, int tag, const std::string& title) {
+  OpenPicker(owner, game, title, false, tag);
+}
+bool DlcPickerOpen() { return PickerOpen(); }
+void DlcPickerToFront() { PickerToFront(); }
+bool TakeDlcPick(int& game, int& tag, std::string& path) {
+  std::lock_guard<std::mutex> lock(g_picker.mu);
+  if (!g_picker.done || g_picker.tag == 0) return false;
+  g_picker.done = false;
+  game = g_picker.game;
+  tag = g_picker.tag;
+  path = g_picker.path;
+  return true;
+}
+
 void DrawInstall(App& app, int g) {
   const Frame& f = F();
   const GameInfo& game = Games()[g];
@@ -242,7 +260,7 @@ void DrawInstall(App& app, int g) {
   // The file picker's answer (it may come after the player has left this screen).
   {
     std::unique_lock<std::mutex> lock(g_picker.mu);
-    if (g_picker.done) {
+    if (g_picker.done && g_picker.tag == 0) {
       g_picker.done = false;
       const int pg = g_picker.game;
       const std::string file = g_picker.path;

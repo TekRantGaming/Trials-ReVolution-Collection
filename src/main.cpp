@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "app.h"
+#include "dlc.h"
 #include "sounds.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_sdl2.h"
@@ -181,6 +182,21 @@ int main(int argc, char** argv) {
     } else if (a == "--test-download" && i + 1 < argc) {
       options.test_download = std::atoi(argv[++i]);
       options.offline = true;  // no art downloads or startup updates: only the job under test
+    } else if (a == "--test-dlc" && i + 3 < argc) {
+      // Testing: installs add-on <index> of game <n> from <path> (dlc.h), writes the result to dlc-test.txt, quits.
+      const int g = std::atoi(argv[++i]);
+      const int d = std::atoi(argv[++i]);
+      const std::string path = argv[++i];
+      std::string result = "no such game or add-on";
+      if (g >= 0 && g < trials::kGameCount && d >= 0 && d < int(trials::DlcFor(trials::Games()[g]).size())) {
+        trg::Task task;
+        result = trials::InstallDlc(task, trials::Games()[g], trials::DlcFor(trials::Games()[g])[size_t(d)], path);
+      }
+      if (FILE* f = std::fopen((trials::LauncherDir() + "/dlc-test.txt").c_str(), "w")) {
+        std::fprintf(f, "%s\n", result.empty() ? "ok" : result.c_str());
+        std::fclose(f);
+      }
+      return 0;
     } else if (a == "--test-install" && i + 2 < argc) {
       options.test_install = std::atoi(argv[++i]);
       options.test_package = argv[++i];
@@ -194,7 +210,7 @@ int main(int argc, char** argv) {
   SDL_SetHint(SDL_HINT_GAMECONTROLLER_USE_BUTTON_LABELS, "0");
   SDL_SetMainReady();
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMECONTROLLER) != 0) {
-    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Trials The Recompilation Collection", SDL_GetError(), nullptr);
+    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Trials: ReVolution Collection", SDL_GetError(), nullptr);
     return 1;
   }
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
@@ -213,11 +229,11 @@ int main(int argc, char** argv) {
     ww = 1440;
     wh = 860;
   }
-  SDL_Window* win = SDL_CreateWindow("Trials The Recompilation Collection", SDL_WINDOWPOS_CENTERED,
+  SDL_Window* win = SDL_CreateWindow("Trials: ReVolution Collection", SDL_WINDOWPOS_CENTERED,
                                      SDL_WINDOWPOS_CENTERED, ww, wh, flags);
   SDL_GLContext ctx = win ? SDL_GL_CreateContext(win) : nullptr;
   if (!ctx || !gl.Init()) {
-    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Trials The Recompilation Collection",
+    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Trials: ReVolution Collection",
                              "OpenGL 3.3 is needed to show the launcher.", nullptr);
     return 1;
   }

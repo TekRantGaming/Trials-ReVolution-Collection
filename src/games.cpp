@@ -96,6 +96,8 @@ std::string BackupsDir(const GameInfo& game) { return LauncherDir() + "/save-bac
 std::string CacheDir() { return LauncherDir() + "/cache"; }
 
 std::string SavesDir(const GameInfo& game) {
+  // Testing: TRIALS_TEST_DOCUMENTS stands in for Documents (the DLC install test).
+  if (const char* test = std::getenv("TRIALS_TEST_DOCUMENTS"); test && *test) return std::string(test) + "/" + game.id;
 #if defined(_WIN32)
   PWSTR docs = nullptr;
   std::string out;

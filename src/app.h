@@ -3,6 +3,7 @@
 //   Game      one game's page: Play, its settings, achievements, saves
 //   Settings  one game's own settings, in sections (each game has its own file)
 //   Install   the package step of a game's install
+//   DLC       a game's add-ons, installed from the player's packages (dlc_screen.cpp)
 //   Collection settings for the launcher itself
 //   Projects  Other TRG Projects (projects.h)
 #pragma once
@@ -33,7 +34,7 @@
 namespace trials {
 
 struct AppOptions {
-  std::string view = "home";  // testing: home, hub:<n>, game:<n>:<section>, install:<n>, settings
+  std::string view = "home";  // testing: home, hub:<n>, game:<n>:<section>, install:<n>, dlc:<n>, settings
   int hover = -1;             // testing: start with this game focused on the home screen
   bool offline = false;       // no update checks or art downloads
   int frames = 45;            // testing: frames drawn before --screenshot saves
@@ -59,6 +60,11 @@ struct GameUi {
   GameAchievements achievements;  // loaded when first shown, again after the game closes
   SettingsView settings_view;
   dash::RowsState install_rows;
+  // Add-ons (dlc.h): the install or removal running, and its result.
+  trg::Task dlc_task;
+  std::string dlc_message;
+  bool dlc_error = false;
+  dash::RowsState dlc_rows;
   // Saves and install work (back up, restore, delete, remove).
   trg::Task manage;
   std::string manage_result;
@@ -87,6 +93,7 @@ class App {
   void OpenHub(int game);
   void OpenGameSettings(int game, const char* section = nullptr);
   void OpenInstall(int game);
+  void OpenDlc(int game);
   void OpenCollection();
   void OpenProjects();
   void OpenGoldEdition();
@@ -139,7 +146,7 @@ class App {
   void PollSelfUpdate();
   void StartAddToSteam();
   void TickSteam();
-  enum class View { kHome, kHub, kSettings, kInstall, kCollection, kProjects, kGold };
+  enum class View { kHome, kHub, kSettings, kInstall, kDlc, kCollection, kProjects, kGold };
   bool Launch(const std::string& exe, const std::string& dir, const std::vector<std::string>& args,
               const std::string& title,
               int index);
@@ -185,6 +192,12 @@ void FocusHubPlay();
 void DrawGameSettings(App& app, int game);
 int FindGameSection(const char* name);  // -1 when there is no such section
 void DrawInstall(App& app, int game);
+void DrawDlc(App& app, int game);  // dlc_screen.cpp
+// The install screen's file picker, for the DLC page (install_screen.cpp).
+void OpenDlcPicker(SDL_Window* owner, int game, int tag, const std::string& title);
+bool DlcPickerOpen();
+void DlcPickerToFront();
+bool TakeDlcPick(int& game, int& tag, std::string& path);
 void DrawCollection(App& app);
 
 }  // namespace trials

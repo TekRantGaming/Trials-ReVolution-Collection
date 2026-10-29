@@ -1,6 +1,6 @@
 // A game's page, like a game hub on the Xbox dashboard: the art and logo, a
-// row of buttons (Play, Settings, Saves and install) and cards underneath for
-// achievements, what's new and save backups.
+// row of buttons (Play, Add DLC, Settings, Saves and install) and cards
+// underneath for achievements, what's new and save backups.
 
 #include <algorithm>
 #include <cstdio>
@@ -20,6 +20,7 @@ struct HubState {
   int row = 0;  // 0 buttons, 1 cards
   int col = 0;
 };
+constexpr int kButtons = 4, kCards = 3;
 HubState hub;
 
 const char* kBullet = "  \xC2\xB7  ";
@@ -117,7 +118,8 @@ void DrawHub(App& app, int g) {
   if (Pressed(Btn::kUp)) hub.row = 0;
   if (Pressed(Btn::kDown)) hub.row = 1;
   if (Pressed(Btn::kLeft)) hub.col = std::max(0, hub.col - 1);
-  if (Pressed(Btn::kRight)) hub.col = std::min(2, hub.col + 1);
+  if (Pressed(Btn::kRight)) hub.col = std::min((hub.row == 0 ? kButtons : kCards) - 1, hub.col + 1);
+  if (hub.row == 1) hub.col = std::min(hub.col, kCards - 1);
   if (Pressed(Btn::kX) && gu.jobs.task.running() && gu.jobs.kind != GameJobs::Kind::kInstall) gu.jobs.task.Cancel();
 
   f.dl->AddRectFilled(f.o, f.end, IM_COL32(8, 8, 10, 255));
@@ -144,9 +146,9 @@ void DrawHub(App& app, int g) {
   // Buttons.
   int clicked = -1, hovered = -1;
   const std::string primary = app.PrimaryLabel(g);
-  const std::string labels[3] = {primary, "Settings", "Saves and install"};
+  const std::string labels[kButtons] = {primary, "Add DLC", "Settings", "Saves and install"};
   float x = f.X(48);
-  for (int i = 0; i < 3; ++i) {
+  for (int i = 0; i < kButtons; ++i) {
     const bool focused = hub.row == 0 && hub.col == i;
     PillRect r = Pill(ImVec2(x, y), labels[i], i == 0, focused, i == 0 && primary == "Play");
     if (Hover(r.a, r.b)) hovered = i;
@@ -189,27 +191,35 @@ void DrawHub(App& app, int g) {
   AchievementsCard(app, g, ca[0], cb[0]);
   NewsCard(app, g, ca[1], cb[1]);
   SavesCard(app, g, ca[2], cb[2]);
-  for (int i = 0; i < 3; ++i) {
+  // Buttons are 0 to 3, cards 10 to 12.
+  for (int i = 0; i < kCards; ++i) {
     if (hub.row == 1 && hub.col == i) FocusRing(ca[i], cb[i], 10);
-    if (Hover(ca[i], cb[i])) hovered = 3 + i;
-    if (Clicked(ca[i], cb[i])) clicked = 3 + i;
+    if (Hover(ca[i], cb[i])) hovered = 10 + i;
+    if (Clicked(ca[i], cb[i])) clicked = 10 + i;
   }
-  if (hovered >= 0 && MouseMoved() && hub.row * 3 + hub.col != hovered) {
-    hub.row = hovered / 3;
-    hub.col = hovered % 3;
+  const int focused = hub.row == 0 ? hub.col : 10 + hub.col;
+  if (hovered >= 0 && MouseMoved() && focused != hovered) {
+    hub.row = hovered >= 10 ? 1 : 0;
+    hub.col = hovered % 10;
     sound::Play(sound::Sound::kMove);
   }
 
   int act = clicked;
-  if (Pressed(Btn::kA)) act = hub.row * 3 + hub.col;
+  if (Pressed(Btn::kA)) act = focused;
   if (Pressed(Btn::kStart)) act = 0;
   switch (act) {
     case 0: app.PrimaryAction(g); break;
-    case 1: app.OpenGameSettings(g); break;
-    case 2: app.OpenGameSettings(g, "Saves and install"); break;
-    case 3: app.OpenGameSettings(g, "Achievements"); break;
-    case 4: trg::OpenUrl(std::string("https://github.com/") + game.repo + "/releases"); break;
-    case 5: app.OpenGameSettings(g, "Saves and install"); break;
+    case 1:
+      if (app.state(g) == GameState::kInstalled)
+        app.OpenDlc(g);
+      else
+        app.SetToast("Install " + std::string(game.title) + " first, then add its DLC.", true);
+      break;
+    case 2: app.OpenGameSettings(g); break;
+    case 3: app.OpenGameSettings(g, "Saves and install"); break;
+    case 10: app.OpenGameSettings(g, "Achievements"); break;
+    case 11: trg::OpenUrl(std::string("https://github.com/") + game.repo + "/releases"); break;
+    case 12: app.OpenGameSettings(g, "Saves and install"); break;
     default: break;
   }
 

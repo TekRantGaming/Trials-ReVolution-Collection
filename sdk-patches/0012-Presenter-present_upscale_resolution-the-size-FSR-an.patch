@@ -1,0 +1,62 @@
+From 6a8230363e5dcdfe615a2320ae203acef34b94fd Mon Sep 17 00:00:00 2001
+From: TekRantGaming <craigferels896@gmail.com>
+Date: Thu, 29 Oct 2026 02:16:26 +0000
+Subject: [PATCH] Presenter: present_upscale_resolution, the size FSR and NIS
+ upscale to
+
+The upscalers can stop at the player's chosen resolution (fitted inside the output with its shape); the bilinear pass
+then stretches that to the window, so the picture is the chosen resolution, not the screen's.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/ui/presenter.cpp | 20 ++++++++++++++++++++
+ 1 file changed, 20 insertions(+)
+
+diff --git a/src/ui/presenter.cpp b/src/ui/presenter.cpp
+index e63e481..71c1db8 100644
+--- a/src/ui/presenter.cpp
++++ b/src/ui/presenter.cpp
+@@ -10,6 +10,7 @@
+  */
+ 
+ #include <algorithm>
++#include <cstdio>
+ #include <atomic>
+ #include <cctype>
+ #include <utility>
+@@ -83,6 +84,10 @@ REXCVAR_DEFINE_STRING(present_effect, "bilinear", "UI/Presenter", "Guest output
+     .lifecycle(rex::cvar::Lifecycle::kRequiresRestart);
+ #endif
+ 
++REXCVAR_DEFINE_STRING(present_upscale_resolution, "", "UI/Presenter",
++                      "Size AMD FSR and NVIDIA NIS upscale to (WIDTHxHEIGHT, kept within the window); the result "
++                      "is then stretched to the window. Empty: the window size");
++
+ REXCVAR_DEFINE_BOOL(present_dither, false, "UI/Presenter",
+                     "Enable output dithering in the final present pass")
+     .lifecycle(rex::cvar::Lifecycle::kRequiresRestart);
+@@ -1053,6 +1058,21 @@ Presenter::GuestOutputPaintFlow Presenter::GetGuestOutputPaintFlow(
+   // render target size.
+   uint32_t output_width_clamped = std::min(output_width, max_rt_width);
+   uint32_t output_height_clamped = std::min(output_height, max_rt_height);
++  // present_upscale_resolution: the upscalers stop at the player's chosen resolution (fitted inside the output with
++  // its shape), and the bilinear pass below stretches that to the window.
++  {
++    const std::string& target = REXCVAR_GET(present_upscale_resolution);
++    unsigned target_w = 0, target_h = 0;
++    if (!target.empty() && std::sscanf(target.c_str(), "%ux%u", &target_w, &target_h) == 2 && target_w &&
++        target_h) {
++      const double fit = std::min({1.0, double(target_w) / double(output_width),
++                                   double(target_h) / double(output_height)});
++      output_width_clamped =
++          std::min(output_width_clamped, std::max(uint32_t(1), uint32_t(output_width * fit + 0.5)));
++      output_height_clamped =
++          std::min(output_height_clamped, std::max(uint32_t(1), uint32_t(output_height * fit + 0.5)));
++    }
++  }
+ 
+ #if defined(REX_HAS_NIS)
+   if (config.GetEffect() == GuestOutputPaintConfig::Effect::kNis) {
+-- 
+2.55.0.windows.5
+

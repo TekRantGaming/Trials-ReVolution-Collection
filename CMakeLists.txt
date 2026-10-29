@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.20)
 file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" TRIALS_RELEASE_VERSION LIMIT_COUNT 1)
 project(trials_launcher VERSION ${TRIALS_RELEASE_VERSION} LANGUAGES C CXX)
 
-# Trials The Recompilation Collection: one launcher for the three Trials Xbox
+# Trials: ReVolution Collection: one launcher for the three Trials Xbox
 # Live Arcade recompilations (Trials HD, Trials Evolution, Trials Fusion).
 #
 # Built on the TRG Launcher (third_party/trg-launcher): its settings stores,
@@ -44,6 +44,8 @@ add_executable(trials_launcher WIN32
   src/hub.cpp
   src/install.cpp
   src/install_screen.cpp
+  src/dlc.cpp
+  src/dlc_screen.cpp
   src/saves.cpp
   src/projects.cpp
   src/projects_screen.cpp

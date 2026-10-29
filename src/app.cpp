@@ -152,6 +152,8 @@ void App::Start() {
     if (colon != std::string::npos) games_[g]->settings_view.in_rows = true;
   } else if (v.rfind("install:", 0) == 0) {
     OpenInstall(std::atoi(v.c_str() + 8));
+  } else if (v.rfind("dlc:", 0) == 0) {
+    OpenDlc(std::atoi(v.c_str() + 4));
   } else if (v == "projects") {
     OpenProjects();
   } else if (v == "gold") {
@@ -221,6 +223,12 @@ void App::OpenInstall(int game) {
   if (game < 0 || game >= kGameCount) return;
   current_ = game;
   view_ = View::kInstall;
+}
+
+void App::OpenDlc(int game) {
+  if (game < 0 || game >= kGameCount) return;
+  current_ = game;
+  view_ = View::kDlc;
 }
 
 void App::OpenProjects() { view_ = View::kProjects; }
@@ -511,6 +519,7 @@ bool App::Frame() {
     case View::kHub: DrawHub(*this, current_); break;
     case View::kSettings: DrawGameSettings(*this, current_); break;
     case View::kInstall: DrawInstall(*this, current_); break;
+    case View::kDlc: DrawDlc(*this, current_); break;
     case View::kCollection: DrawCollection(*this); break;
     case View::kProjects: DrawProjects(*this); break;
     case View::kGold: DrawGoldEdition(*this); break;

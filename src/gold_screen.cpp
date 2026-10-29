@@ -1,5 +1,5 @@
-// Trials Evolution: Gold Edition (Home's tile after the games): Ubisoft's PC release on Steam, with a link to its
-// store page, and why this collection recompiles the original Xbox 360 games anyway. The README has the long text.
+// Trials Evolution: Gold Edition (Home's tile after the games): Ubisoft's PC release on Steam, its description from
+// the Steam store and a link to its store page.
 
 #include <string>
 
@@ -13,21 +13,14 @@ namespace {
 
 using namespace dash;
 
-struct Point {
-  const char* title;
-  const char* text;
-};
-
-const Point kPoints[] = {
-    {"The original physics",
-     "Gold Edition rebuilt the Trials HD tracks on the Trials Evolution engine, so they ride differently and some "
-     "of them changed. Here each game runs its own code, exactly as on the Xbox 360."},
-    {"Four expansions",
-     "Gold Edition leaves out the four major expansions of Trials HD and Trials Evolution: Big Pack, Big Thrills, "
-     "Riders of Doom and Origin of Pain, 151 tracks in all. Only the original games have them."},
-    {"Each game as itself",
-     "Trials HD, Trials Evolution and Trials Fusion stay three games, each with its own look, physics and content."},
-};
+// From its Steam store page (app 220160), in short.
+const char* kDescription =
+    "Trials Evolution: Gold Edition brought the Trials series back to PC in 2013. It holds all of Trials Evolution, "
+    "the best selling Xbox Live Arcade game, together with the single player tracks and skill games of Trials HD: "
+    "two complete games in one.";
+const char* kFeatures[] = {"Multiplayer", "Track editor", "Indoor and outdoor environments",
+                           "Bike and rider customization", "Global leaderboards"};
+const char* kFacts = "RedLynx and Ubisoft Shanghai  \xC2\xB7  Ubisoft  \xC2\xB7  21 March 2013";
 
 }  // namespace
 
@@ -52,26 +45,18 @@ void DrawGoldEdition(App& app) {
     f.dl->AddImage(ImTextureRef(logo.id), ImVec2(f.X(48), y), ImVec2(f.X(48) + w, y + h));
     y += h + 14 * f.s;
   }
-  const std::string intro =
-      "Trials Evolution: Gold Edition is Ubisoft's PC release of Trials Evolution, with the tracks of Trials HD. If "
-      "you would like to play it, please buy it on Steam: it supports the people who made these games.";
-  Text(f.regular, 16, ImVec2(f.X(48), y), White(0.9f), intro, wrap);
-  y += TextSize(f.regular, 16, intro, wrap).y + 22 * f.s;
-  Text(f.bold, 22, ImVec2(f.X(48), y), White(), "Why this collection exists");
-  y += 38 * f.s;
-  for (const Point& p : kPoints) {
+  Text(f.regular, 16, ImVec2(f.X(48), y), White(0.9f), kDescription, wrap);
+  y += TextSize(f.regular, 16, kDescription, wrap).y + 22 * f.s;
+  Text(f.bold, 20, ImVec2(f.X(48), y), White(), "Key features");
+  y += 34 * f.s;
+  for (const char* feature : kFeatures) {
     f.dl->AddCircleFilled(ImVec2(f.X(56), y + 11 * f.s), 4 * f.s, IM_COL32(240, 106, 18, 255));
-    Text(f.semibold, 16, ImVec2(f.X(72), y), White(), p.title, wrap - 24);
-    y += 24 * f.s;
-    Text(f.regular, 15, ImVec2(f.X(72), y), White(0.78f), p.text, wrap - 24);
-    y += TextSize(f.regular, 15, p.text, wrap - 24).y + 14 * f.s;
+    Text(f.semibold, 16, ImVec2(f.X(72), y), White(0.9f), feature, wrap - 24);
+    y += 28 * f.s;
   }
-  const std::string goal =
-      "This collection does not replace or compete with Ubisoft's PC releases. Its goal is to preserve the original "
-      "Xbox 360 games themselves.";
-  y += 4 * f.s;
-  Text(f.semibold, 15, ImVec2(f.X(48), y), White(0.9f), goal, wrap);
-  y += TextSize(f.semibold, 15, goal, wrap).y + 22 * f.s;
+  y += 10 * f.s;
+  Text(f.regular, 14, ImVec2(f.X(48), y), White(0.6f), kFacts, wrap);
+  y += 34 * f.s;
   const PillRect steam = Pill(ImVec2(f.X(48), y), "View on Steam", true, true);
   const bool click = Clicked(steam.a, steam.b);
 

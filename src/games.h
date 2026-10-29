@@ -13,7 +13,7 @@ namespace trials {
 // releases: vX, the one players see, with only the portable launcher's zip, and packages-vX with what the
 // launcher downloads: TrialsCollection-vX-windows-x64.zip (its own update), TrialsHD-, TrialsEvolution- and
 // TrialsFusion-vX-windows-x64.zip and SHA256SUMS.txt.
-inline constexpr const char* kCollectionRepo = "TekRantGaming/trials-recompilation-collection";
+inline constexpr const char* kCollectionRepo = "TekRantGaming/trials-revolution-collection";
 inline constexpr const char* kPackagesTagPrefix = "packages-v";
 
 struct GameInfo {
@@ -46,8 +46,8 @@ enum class GameState {
 
 constexpr int kGameCount = 3;
 
-// Trials Evolution: Gold Edition, the Ubisoft release on Steam: Home has a tile for it (gold_screen.cpp) that
-// explains why the original games are recompiled. Its art is the art cache's entry after the games.
+// Trials Evolution: Gold Edition, the Ubisoft release on Steam: Home has a tile for it (gold_screen.cpp) with
+// its store description and a link. Its art is the art cache's entry after the games.
 constexpr int kGoldEditionArt = kGameCount;
 constexpr int kGoldEditionSteamGridDb = 2260;
 constexpr const char* kGoldEditionStoreUrl = "https://store.steampowered.com/app/220160/Trials_Evolution_Gold_Edition/";
