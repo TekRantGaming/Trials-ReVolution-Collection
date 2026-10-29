@@ -300,6 +300,12 @@ std::vector<Section> GameSections(App& app, int g) {
     // default. Evolution and Fusion always run at 60: their game speed follows the frame rate (frame_limit.cpp).
     if (std::string(Games()[g].id) != "trials_hd") {
       r.Info("Frame rate", "60, as on the Xbox 360");
+      r.Paragraph("This game moves everything forward by one fixed step each frame: its physics, timers and "
+                  "animation. Drawing more than 60 frames a second would make the whole game run faster, not "
+                  "smoother. A higher frame rate needs the game's updates separated from its drawing, with the frames "
+                  "in between worked out, which means rewriting parts of the game itself: work closer to a "
+                  "decompilation than this recompilation. If you would like to take it on, you are welcome to fork "
+                  "the project or send a pull request on GitHub: github.com/" + std::string(kCollectionRepo) + ".");
     } else {
       r.Choice("Frame rate", "Original is the 60 the game ran at on the Xbox 360. Higher is smoother: the physics "
                "keeps its 60 updates a second and each frame is drawn between them. Unlimited runs as fast as your PC "

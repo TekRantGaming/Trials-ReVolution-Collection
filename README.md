@@ -251,6 +251,7 @@ Each game's **Saves and install** page backs up your saves and restores them, op
 
 - **No online play**: leaderboards, multiplayer and Track Central need Xbox Live.
 - **No title updates** yet: the games run as their first release.
+- **Trials Evolution and Trials Fusion run at 60 FPS.** Their engines move everything forward by one fixed step each frame, so a higher frame rate would make the whole game run faster. Changing that means separating the games' updates from their drawing and working out the frames in between, which is closer to a decompilation than this recompilation. Forks and pull requests that take it on are welcome.
 
 ### Reporting a problem
 
