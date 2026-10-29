@@ -95,21 +95,6 @@ void ApplyRenderQuality(rex::ui::Window* window) {
     chosen_w = chosen_h = 0;
   }
 
-#if defined(TRIALS_ORIGINAL_RESOLUTION)
-  // Trials Evolution and Trials Fusion draw at the console's 720p. Above it some frames read resolves the renderer
-  // stores scaled at the wrong time: captured frame by frame at 2x, one frame in a few showed the scene without its
-  // motion blur and depth of field and from another camera position (objects vanished and came back, about 4800
-  // pixels a frame), at 1x none. The upscaler still takes the picture to the player's resolution
-  // (present_upscale_resolution above).
-  for (const char* name : {"resolution_scale", "draw_resolution_scale_x", "draw_resolution_scale_y"}) {
-    SetCvarDefault(name, "1");
-    rex::cvar::SetFlagByName(name, "1");
-  }
-  (void)window;
-  REXLOG_INFO("Trials: render resolution 720p (this game always draws at the original resolution)");
-  return;
-#endif
-
   const std::string mode = REXCVAR_GET(trials_render_quality);
   // Output height in physical pixels: the chosen resolution, else the screen in fullscreen, else the window.
   // The window is not sized yet here, so windowed uses the window height setting (logical units, times the
