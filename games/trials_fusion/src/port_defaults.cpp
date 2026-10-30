@@ -47,6 +47,9 @@ void ApplyPortDefaults() {
   // Above 720p every host pixel of a guest pixel gets that pixel's position: the color grading table is drawn from
   // the pixel position, and positions between guest pixels made the whole picture pink (SDK patch 0013).
   SetCvarDefault("ps_position_guest_pixels", "true");
+  // The pass that draws the coarse levels of the virtual texture page table (the same code as Trials Evolution's) is
+  // drawn as the console draws it: above 720p it moved those levels by a host pixel (SDK patch 0020).
+  SetCvarDefault("ps_guest_pixel_center_shaders", "95BB846480BFCC1C");
 #if defined(__linux__)
   SetCvarDefault("render_target_path_vulkan", "fbo");
 #endif
