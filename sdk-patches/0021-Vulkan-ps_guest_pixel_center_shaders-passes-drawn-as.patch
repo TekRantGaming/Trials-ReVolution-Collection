@@ -1,0 +1,280 @@
+From eb0c4403f113abefdd8d5aca0267a961ed3cda9f Mon Sep 17 00:00:00 2001
+From: TekRantGaming <craigferels896@gmail.com>
+Date: Fri, 30 Oct 2026 14:02:14 +0000
+Subject: [PATCH] Vulkan: ps_guest_pixel_center_shaders, passes drawn as the
+ console draws them
+
+The Vulkan side of f1790e0. Pixel shaders listed in
+ps_guest_pixel_center_shaders are moved up and left by (scale minus 1) / 2
+host pixels through the NDC offset, and every other host pixel of a guest
+pixel takes the first one's interpolants along the fine derivatives.
+
+Three things differ from Direct3D 12. NDC Y points down here, along render
+target Y, so both axes subtract. The cvar and its hash check lived in
+dxbc_translator.cpp, which only Direct3D 12 builds compile, so on Linux the
+setting the games make was dropped without a word: both move to
+translator.cpp. And the fragment shader now asks for gl_FragCoord itself,
+since these passes run with early fragment tests and nothing else did.
+
+Checked on lavapipe at 2x in Trials Evolution's own page table pass, with
+its fetch result replaced by a hash of the coordinates it computed (the
+Vulkan page table holds no real data yet: integer number format fetches
+and resolves exist only on Direct3D 12). All three dumps match 1x in every
+guest texel of levels 3 to 7, and no guest texel has host pixels that
+differ. With the cvar off 5516 texels differ, and with the Direct3D 12 sign
+on Y all 5516 come out wrong.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../pipeline/shader/dxbc_translator.h         |  5 --
+ .../pipeline/shader/spirv_translator.h        |  8 +++
+ .../rex/graphics/pipeline/shader/translator.h |  5 ++
+ .../pipeline/shader/dxbc_translator.cpp       | 23 --------
+ .../pipeline/shader/spirv_translator.cpp      | 57 ++++++++++++++++++-
+ src/graphics/pipeline/shader/translator.cpp   | 28 +++++++++
+ src/graphics/vulkan/command_processor.cpp     | 16 ++++++
+ 7 files changed, 113 insertions(+), 29 deletions(-)
+
+diff --git a/include/rex/graphics/pipeline/shader/dxbc_translator.h b/include/rex/graphics/pipeline/shader/dxbc_translator.h
+index 0d319f2..3b0fd61 100644
+--- a/include/rex/graphics/pipeline/shader/dxbc_translator.h
++++ b/include/rex/graphics/pipeline/shader/dxbc_translator.h
+@@ -26,11 +26,6 @@
+ 
+ namespace rex::graphics {
+ 
+-// Whether ps_guest_pixel_center_shaders lists the pixel shader: such passes are drawn as the console draws them at
+-// its resolution (the command processor moves them by (scale - 1) / 2 host pixels, the translator gives every host
+-// pixel of a guest pixel the first one's interpolants).
+-bool IsPixelShaderAtGuestPixelCenter(uint64_t ucode_data_hash);
+-
+ // Generates shader model 5_1 byte code (for Direct3D 12).
+ //
+ // IMPORTANT CONTRIBUTION NOTES:
+diff --git a/include/rex/graphics/pipeline/shader/spirv_translator.h b/include/rex/graphics/pipeline/shader/spirv_translator.h
+index dce3dbf..e0f4aa1 100644
+--- a/include/rex/graphics/pipeline/shader/spirv_translator.h
++++ b/include/rex/graphics/pipeline/shader/spirv_translator.h
+@@ -554,6 +554,14 @@ class SpirvShaderTranslator : public ShaderTranslator {
+     assert_true(is_pixel_shader());
+     return IsWritingFloat24Depth() && !current_shader().writes_depth();
+   }
++  // Whether every host pixel of a guest pixel takes the first one's interpolants
++  // (ps_guest_pixel_center_shaders).
++  bool IsInterpolatedAtGuestPixelCenter() const {
++    return is_pixel_shader() && !is_depth_only_fragment_shader_ &&
++           (draw_resolution_scale_x_ > 1 || draw_resolution_scale_y_ > 1) &&
++           !current_shader().memexport_eM_written() &&
++           IsPixelShaderAtGuestPixelCenter(current_shader().ucode_data_hash());
++  }
+ 
+   uint32_t GetModificationInterpolatorMask() const {
+     Modification modification = GetSpirvShaderModification();
+diff --git a/include/rex/graphics/pipeline/shader/translator.h b/include/rex/graphics/pipeline/shader/translator.h
+index 340ced5..f32a430 100644
+--- a/include/rex/graphics/pipeline/shader/translator.h
++++ b/include/rex/graphics/pipeline/shader/translator.h
+@@ -24,6 +24,11 @@
+ 
+ namespace rex::graphics {
+ 
++// Whether ps_guest_pixel_center_shaders lists the pixel shader: such passes are drawn as the
++// console draws them at its resolution (the command processor moves them by (scale - 1) / 2 host
++// pixels, the translator gives every host pixel of a guest pixel the first one's interpolants).
++bool IsPixelShaderAtGuestPixelCenter(uint64_t ucode_data_hash);
++
+ class ShaderTranslator {
+  public:
+   virtual ~ShaderTranslator();
+diff --git a/src/graphics/pipeline/shader/dxbc_translator.cpp b/src/graphics/pipeline/shader/dxbc_translator.cpp
+index 9a0de28..5f82ee9 100644
+--- a/src/graphics/pipeline/shader/dxbc_translator.cpp
++++ b/src/graphics/pipeline/shader/dxbc_translator.cpp
+@@ -35,30 +35,7 @@ REXCVAR_DEFINE_BOOL(ps_position_guest_pixels, false, "GPU/Shader",
+                     "(.0) in the pixel shader, as on the console, instead of positions in steps of 1/scale. Fixes "
+                     "lookup tables drawn from the pixel position (Trials Fusion's color grading)");
+ 
+-REXCVAR_DEFINE_STRING(ps_guest_pixel_center_shaders, "", "GPU/Shader",
+-                      "Under resolution scaling, pixel shaders (ucode hashes in hex, comma separated) whose interpolants "
+-                      "every host pixel takes at its guest pixel's center, as the console computes them once per guest "
+-                      "pixel. For passes that build lookup data from interpolated coordinates with floor or wrap math, "
+-                      "drawn as quads with edges on pixel centers (Trials Evolution's virtual texture page table)");
+-
+ namespace rex::graphics {
+-
+-bool IsPixelShaderAtGuestPixelCenter(uint64_t ucode_data_hash) {
+-  // Checked for every draw, and from the shader translation threads: no copies or allocations.
+-  const char* p = REXCVAR_GET(ps_guest_pixel_center_shaders).c_str();
+-  while (*p) {
+-    char* end;
+-    const uint64_t hash = std::strtoull(p, &end, 16);
+-    if (end == p) {
+-      ++p;  // a separator
+-      continue;
+-    }
+-    if (hash == ucode_data_hash) return true;
+-    p = end;
+-  }
+-  return false;
+-}
+-
+ using namespace ucode;
+ 
+ // Notes about operands:
+diff --git a/src/graphics/pipeline/shader/spirv_translator.cpp b/src/graphics/pipeline/shader/spirv_translator.cpp
+index 1774f97..94f794f 100644
+--- a/src/graphics/pipeline/shader/spirv_translator.cpp
++++ b/src/graphics/pipeline/shader/spirv_translator.cpp
+@@ -2901,7 +2901,8 @@ void SpirvShaderTranslator::StartFragmentShaderBeforeMain() {
+   bool memexport_resolution_scaled = current_shader().memexport_eM_written() &&
+                                      (draw_resolution_scale_x_ > 1 || draw_resolution_scale_y_ > 1);
+   if (edram_fragment_shader_interlock_ || param_gen_needed || memexport_resolution_scaled ||
+-      float24_depth_from_fragment_coordinates || alpha_to_coverage_possible) {
++      float24_depth_from_fragment_coordinates || alpha_to_coverage_possible ||
++      IsInterpolatedAtGuestPixelCenter()) {
+     input_fragment_coordinates_ = builder_->createVariable(spv::NoPrecision, spv::StorageClassInput,
+                                                            type_float4_, "gl_FragCoord");
+     builder_->addDecoration(input_fragment_coordinates_, spv::DecorationBuiltIn,
+@@ -3181,6 +3182,60 @@ void SpirvShaderTranslator::StartFragmentShaderInMain() {
+                                     id_vector_temp_));
+   }
+ 
++  // Pixel shaders listed in ps_guest_pixel_center_shaders are drawn as the console draws them at
++  // its resolution (see the DXBC translator: Trials Evolution's virtual texture page table). The
++  // command processor moves such draws up and left by (scale - 1) / 2 host pixels, which puts the
++  // center of the first host pixel of each guest pixel where the console samples; here every other
++  // host pixel of the guest pixel takes that first host pixel's interpolants, along the fine
++  // derivatives (bit exact at 2x, where they are the two pixels of a pair).
++  if (IsInterpolatedAtGuestPixelCenter()) {
++    assert_true(input_fragment_coordinates_ != spv::NoResult);
++    builder_->addCapability(spv::CapabilityDerivativeControl);
++    // How many host pixels the current one is from the first of its guest pixel, per scaled axis.
++    spv::Id host_pixels_from_first[2] = {spv::NoResult, spv::NoResult};
++    for (uint32_t i = 0; i < 2; ++i) {
++      uint32_t axis_resolution_scale = i ? draw_resolution_scale_y_ : draw_resolution_scale_x_;
++      if (axis_resolution_scale <= 1) {
++        continue;
++      }
++      id_vector_temp_.clear();
++      id_vector_temp_.push_back(builder_->makeIntConstant(int(i)));
++      spv::Id position = builder_->createLoad(
++          builder_->createAccessChain(spv::StorageClassInput, input_fragment_coordinates_,
++                                      id_vector_temp_),
++          spv::NoPrecision);
++      host_pixels_from_first[i] = builder_->createUnaryOp(
++          spv::OpConvertUToF, type_float_,
++          builder_->createBinOp(spv::OpUMod, type_uint_,
++                                builder_->createUnaryOp(spv::OpConvertFToU, type_uint_, position),
++                                builder_->makeUintConstant(axis_resolution_scale)));
++    }
++    for (uint32_t i = 0; i < register_count() && i < xenos::kMaxInterpolators; ++i) {
++      if (i == param_gen_interpolator || !(interpolator_mask & (UINT32_C(1) << i))) {
++        continue;
++      }
++      spv::Id interpolator = builder_->createLoad(input_output_interpolators_[i], spv::NoPrecision);
++      // X first, then Y from the X results (equal across each pair, so the Y step is exact too).
++      for (uint32_t j = 0; j < 2; ++j) {
++        if (host_pixels_from_first[j] == spv::NoResult) {
++          continue;
++        }
++        interpolator = builder_->createNoContractionBinOp(
++            spv::OpFSub, type_float4_, interpolator,
++            builder_->createNoContractionBinOp(
++                spv::OpVectorTimesScalar, type_float4_,
++                builder_->createUnaryOp(j ? spv::OpDPdyFine : spv::OpDPdxFine, type_float4_,
++                                        interpolator),
++                host_pixels_from_first[j]));
++      }
++      id_vector_temp_.clear();
++      id_vector_temp_.push_back(builder_->makeIntConstant(int(i)));
++      builder_->createStore(
++          interpolator, builder_->createAccessChain(spv::StorageClassFunction, var_main_registers_,
++                                                    id_vector_temp_));
++    }
++  }
++
+   // Pixel parameters.
+   if (param_gen_interpolator != UINT32_MAX) {
+     Modification modification = GetSpirvShaderModification();
+diff --git a/src/graphics/pipeline/shader/translator.cpp b/src/graphics/pipeline/shader/translator.cpp
+index e472251..6db30bc 100644
+--- a/src/graphics/pipeline/shader/translator.cpp
++++ b/src/graphics/pipeline/shader/translator.cpp
+@@ -11,19 +11,47 @@
+ 
+ #include <algorithm>
+ #include <cstdarg>
++#include <cstdlib>
+ #include <cstring>
+ #include <set>
+ #include <string>
+ #include <utility>
+ 
+ #include <rex/assert.h>
++#include <rex/cvar.h>
+ #include <rex/graphics/flags.h>
+ #include <rex/graphics/pipeline/shader/translator.h>
+ #include <rex/logging.h>
+ #include <rex/math.h>
+ 
++REXCVAR_DEFINE_STRING(ps_guest_pixel_center_shaders, "", "GPU/Shader",
++                      "Under resolution scaling, pixel shaders (ucode hashes in hex, comma "
++                      "separated) whose interpolants every host pixel takes at its guest pixel's "
++                      "center, as the console computes them once per guest pixel. For passes that "
++                      "build lookup data from interpolated coordinates with floor or wrap math, "
++                      "drawn as quads with edges on pixel centers (Trials Evolution's virtual "
++                      "texture page table)");
++
+ namespace rex::graphics {
+ 
++bool IsPixelShaderAtGuestPixelCenter(uint64_t ucode_data_hash) {
++  // Checked for every draw, and from the shader translation threads: no copies or allocations.
++  const char* p = REXCVAR_GET(ps_guest_pixel_center_shaders).c_str();
++  while (*p) {
++    char* end;
++    const uint64_t hash = std::strtoull(p, &end, 16);
++    if (end == p) {
++      ++p;  // a separator
++      continue;
++    }
++    if (hash == ucode_data_hash) {
++      return true;
++    }
++    p = end;
++  }
++  return false;
++}
++
+ using namespace ucode;
+ 
+ // The Xbox 360 GPU is effectively an Adreno A200:
+diff --git a/src/graphics/vulkan/command_processor.cpp b/src/graphics/vulkan/command_processor.cpp
+index ffac2f8..68fc2ad 100644
+--- a/src/graphics/vulkan/command_processor.cpp
++++ b/src/graphics/vulkan/command_processor.cpp
+@@ -4024,6 +4024,22 @@ bool VulkanCommandProcessor::IssueDraw(xenos::PrimitiveType prim_type, uint32_t
+   // Update dynamic graphics pipeline state.
+   UpdateDynamicState(viewport_info, primitive_polygonal, normalized_depth_control);
+ 
++  // Passes drawn as the console draws them at its resolution move up and left by (scale - 1) / 2
++  // host pixels inside the viewport (which keeps clipping where it was), so the first host pixel of
++  // each guest pixel samples where the console samples (spirv_translator.cpp). NDC Y points down
++  // here, along render target Y, so unlike on Direct3D 12 both axes subtract.
++  if (pixel_shader && (draw_resolution_scale_x > 1 || draw_resolution_scale_y > 1) &&
++      IsPixelShaderAtGuestPixelCenter(pixel_shader->ucode_data_hash())) {
++    if (viewport_info.xy_extent[0]) {
++      viewport_info.ndc_offset[0] -=
++          float(draw_resolution_scale_x - 1) / float(viewport_info.xy_extent[0]);
++    }
++    if (viewport_info.xy_extent[1]) {
++      viewport_info.ndc_offset[1] -=
++          float(draw_resolution_scale_y - 1) / float(viewport_info.xy_extent[1]);
++    }
++  }
++
+   auto vgt_draw_initiator = regs.Get<reg::VGT_DRAW_INITIATOR>();
+ 
+   // Whether to load the guest 32-bit (usually big-endian) vertex index
+-- 
+2.55.0.windows.5
+
