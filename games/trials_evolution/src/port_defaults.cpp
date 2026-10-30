@@ -22,6 +22,12 @@
 //                                        guest pixel: the half pixel offset moves the picture by a host pixel, and
 //                                        the top left one gave the tile lighting a neighbour's depth, so ground near
 //                                        the camera got the wrong shadow cascade and went dark (29 Oct 2026)
+//   ps_guest_pixel_center_shaders = F2353E4FEFB912F9
+//                                        the pass that draws the coarse levels of the virtual texture page table
+//                                        (from interpolated coordinates with floor and wrap math) is drawn as the
+//                                        console draws it: above 720p it moved those levels by a host pixel, the
+//                                        ground looked its texture pages up from neighbouring entries and came out
+//                                        blocky (30 Oct 2026)
 //   render_target_path_vulkan = fbo      Linux: host render targets (faster on handheld graphics)
 //   async_shader_compilation_no_pixel_shader = true
 //                                        depth only and memory export pipelines are built in the background too
@@ -52,6 +58,7 @@ void ApplyPortDefaults() {
   SetCvarDefault("memexport_vertex_whole_stream", "false");
   SetCvarDefault("readback_resolve_max_kb", "256");
   SetCvarDefault("readback_resolve_half_pixel_offset", "true");
+  SetCvarDefault("ps_guest_pixel_center_shaders", "F2353E4FEFB912F9");
 #if defined(__linux__)
   SetCvarDefault("render_target_path_vulkan", "fbo");
 #endif

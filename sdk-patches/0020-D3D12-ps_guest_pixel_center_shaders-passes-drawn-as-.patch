@@ -1,0 +1,166 @@
+From f1790e075cf09c3cc1967ad64ec8bbfee77bdbd6 Mon Sep 17 00:00:00 2001
+From: TekRantGaming <craigferels896@gmail.com>
+Date: Fri, 30 Oct 2026 05:58:41 +0000
+Subject: [PATCH 20/20] D3D12: ps_guest_pixel_center_shaders, passes drawn as
+ the console draws them
+
+Trials Evolution draws the coarse levels of its virtual texture page
+table every frame as a quad with edges on pixel centers, from
+interpolated coordinates with floor and wrap math. At 2x the two host
+pixel columns of a guest pixel sit a quarter of a guest pixel either
+side of its center, so where a wrap fell between them whole levels moved
+by a host pixel, and the first host column and row of the quad were not
+covered at all. Distant ground then looked its pages up from neighbouring
+entries.
+
+Pixel shaders listed in ps_guest_pixel_center_shaders (ucode hashes) are
+now moved up and left by (scale minus 1) / 2 host pixels through the NDC
+offset (clipping stays where it was), which puts the first host pixel of
+each guest pixel where the console samples, and every other host pixel of
+the guest pixel takes that pixel's interpolants along the fine
+derivatives (bit exact at 2x). A dump of the 4K page table now has no
+guest texel whose host pixels differ, at any level.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../pipeline/shader/dxbc_translator.h         |  5 ++
+ src/graphics/d3d12/command_processor.cpp      | 13 ++++
+ .../pipeline/shader/dxbc_translator.cpp       | 74 +++++++++++++++++++
+ 3 files changed, 92 insertions(+)
+
+diff --git a/include/rex/graphics/pipeline/shader/dxbc_translator.h b/include/rex/graphics/pipeline/shader/dxbc_translator.h
+index 3b0fd61..0d319f2 100644
+--- a/include/rex/graphics/pipeline/shader/dxbc_translator.h
++++ b/include/rex/graphics/pipeline/shader/dxbc_translator.h
+@@ -26,6 +26,11 @@
+ 
+ namespace rex::graphics {
+ 
++// Whether ps_guest_pixel_center_shaders lists the pixel shader: such passes are drawn as the console draws them at
++// its resolution (the command processor moves them by (scale - 1) / 2 host pixels, the translator gives every host
++// pixel of a guest pixel the first one's interpolants).
++bool IsPixelShaderAtGuestPixelCenter(uint64_t ucode_data_hash);
++
+ // Generates shader model 5_1 byte code (for Direct3D 12).
+ //
+ // IMPORTANT CONTRIBUTION NOTES:
+diff --git a/src/graphics/d3d12/command_processor.cpp b/src/graphics/d3d12/command_processor.cpp
+index 7681e75..305de65 100644
+--- a/src/graphics/d3d12/command_processor.cpp
++++ b/src/graphics/d3d12/command_processor.cpp
+@@ -2648,6 +2648,19 @@ bool D3D12CommandProcessor::IssueDraw(xenos::PrimitiveType primitive_type, uint3
+   // Update viewport, scissor, blend factor and stencil reference.
+   UpdateFixedFunctionState(viewport_info, scissor, primitive_polygonal, normalized_depth_control);
+ 
++  // Passes drawn as the console draws them at its resolution move up and left by (scale - 1) / 2 host pixels
++  // inside the viewport (which keeps clipping where it was), so the first host pixel of each guest pixel samples
++  // where the console samples (dxbc_translator.cpp).
++  if (pixel_shader && (draw_resolution_scale_x > 1 || draw_resolution_scale_y > 1) &&
++      IsPixelShaderAtGuestPixelCenter(pixel_shader->ucode_data_hash())) {
++    if (viewport_info.xy_extent[0]) {
++      viewport_info.ndc_offset[0] -= float(draw_resolution_scale_x - 1) / float(viewport_info.xy_extent[0]);
++    }
++    if (viewport_info.xy_extent[1]) {
++      viewport_info.ndc_offset[1] += float(draw_resolution_scale_y - 1) / float(viewport_info.xy_extent[1]);
++    }
++  }
++
+   // Update system constants before uploading them.
+   // TODO(Triang3l): With ROV, pass the disabled render target mask for safety.
+   UpdateSystemConstantValues(memexport_used, primitive_polygonal,
+diff --git a/src/graphics/pipeline/shader/dxbc_translator.cpp b/src/graphics/pipeline/shader/dxbc_translator.cpp
+index 5759269..9a0de28 100644
+--- a/src/graphics/pipeline/shader/dxbc_translator.cpp
++++ b/src/graphics/pipeline/shader/dxbc_translator.cpp
+@@ -35,7 +35,30 @@ REXCVAR_DEFINE_BOOL(ps_position_guest_pixels, false, "GPU/Shader",
+                     "(.0) in the pixel shader, as on the console, instead of positions in steps of 1/scale. Fixes "
+                     "lookup tables drawn from the pixel position (Trials Fusion's color grading)");
+ 
++REXCVAR_DEFINE_STRING(ps_guest_pixel_center_shaders, "", "GPU/Shader",
++                      "Under resolution scaling, pixel shaders (ucode hashes in hex, comma separated) whose interpolants "
++                      "every host pixel takes at its guest pixel's center, as the console computes them once per guest "
++                      "pixel. For passes that build lookup data from interpolated coordinates with floor or wrap math, "
++                      "drawn as quads with edges on pixel centers (Trials Evolution's virtual texture page table)");
++
+ namespace rex::graphics {
++
++bool IsPixelShaderAtGuestPixelCenter(uint64_t ucode_data_hash) {
++  // Checked for every draw, and from the shader translation threads: no copies or allocations.
++  const char* p = REXCVAR_GET(ps_guest_pixel_center_shaders).c_str();
++  while (*p) {
++    char* end;
++    const uint64_t hash = std::strtoull(p, &end, 16);
++    if (end == p) {
++      ++p;  // a separator
++      continue;
++    }
++    if (hash == ucode_data_hash) return true;
++    p = end;
++  }
++  return false;
++}
++
+ using namespace ucode;
+ 
+ // Notes about operands:
+@@ -677,6 +700,57 @@ void DxbcShaderTranslator::StartPixelShader() {
+     PopSystemTemp();
+   }
+ 
++  // Pixel shaders listed in ps_guest_pixel_center_shaders are drawn as the console draws them at its resolution.
++  // Trials Evolution draws the coarse levels of its virtual texture page table from interpolated coordinates with
++  // floor and wrap math, as a quad whose edges lie on pixel centers: at 2x the host pixels of a guest pixel sit a
++  // quarter of a guest pixel either side of its center, so where a wrap fell between them whole levels moved by a host
++  // pixel, and the first host column and row of the quad were not covered at all. The ground's texture pages were then
++  // looked up from the neighbouring entries (blocky ground). The command processor moves such draws up and left by
++  // (scale - 1) / 2 host pixels, which puts the center of the first host pixel of each guest pixel where the console
++  // samples (same coverage, same interpolants); here every other host pixel of the guest pixel takes that first host
++  // pixel's interpolants, along the fine derivatives (bit exact at 2x, where they are the two pixels of a pair).
++  if ((draw_resolution_scale_x_ > 1 || draw_resolution_scale_y_ > 1) && !current_shader().memexport_eM_written() &&
++      IsPixelShaderAtGuestPixelCenter(current_shader().ucode_data_hash())) {
++    uint32_t offset_temp = PushSystemTemp();
++    uint32_t value_temp = PushSystemTemp();
++    uint32_t deriv_temp = PushSystemTemp();
++    in_position_used_ |= 0b0011;
++    // offset_temp.xy = p, offset_temp.zw = floor(p / scale) * scale, then offset_temp.xy = that - p (0 for the first
++    // host pixel of the guest pixel, -1 for the next).
++    a_.OpRoundNI(dxbc::Dest::R(offset_temp, 0b0011), dxbc::Src::V1D(in_reg_ps_position_));
++    a_.OpMul(dxbc::Dest::R(offset_temp, 0b1100), dxbc::Src::R(offset_temp, 0b01000100),
++             dxbc::Src::LF(0.0f, 0.0f, 1.0f / float(draw_resolution_scale_x_),
++                           1.0f / float(draw_resolution_scale_y_)));
++    a_.OpRoundNI(dxbc::Dest::R(offset_temp, 0b1100), dxbc::Src::R(offset_temp));
++    a_.OpMul(dxbc::Dest::R(offset_temp, 0b1100), dxbc::Src::R(offset_temp),
++             dxbc::Src::LF(0.0f, 0.0f, float(draw_resolution_scale_x_), float(draw_resolution_scale_y_)));
++    a_.OpAdd(dxbc::Dest::R(offset_temp, 0b0011), dxbc::Src::R(offset_temp, 0b11101110),
++             -dxbc::Src::R(offset_temp));
++    for (uint32_t i = 0; i < register_count() && i < xenos::kMaxInterpolators; ++i) {
++      if (i == param_gen_interpolator || !(interpolator_mask & (UINT32_C(1) << i))) {
++        continue;
++      }
++      a_.OpMov(dxbc::Dest::R(value_temp),
++               dxbc::Src::V1D(in_reg_ps_interpolators_ +
++                              rex::bit_count(interpolator_mask & ((UINT32_C(1) << i) - 1))));
++      // X first, then Y from the X results (equal across each pair, so the Y step is exact too).
++      if (draw_resolution_scale_x_ > 1) {
++        a_.OpDerivRTXFine(dxbc::Dest::R(deriv_temp), dxbc::Src::R(value_temp));
++        a_.OpMAd(dxbc::Dest::R(value_temp), dxbc::Src::R(deriv_temp),
++                 dxbc::Src::R(offset_temp, dxbc::Src::kXXXX), dxbc::Src::R(value_temp));
++      }
++      if (draw_resolution_scale_y_ > 1) {
++        a_.OpDerivRTYFine(dxbc::Dest::R(deriv_temp), dxbc::Src::R(value_temp));
++        a_.OpMAd(dxbc::Dest::R(value_temp), dxbc::Src::R(deriv_temp),
++                 dxbc::Src::R(offset_temp, dxbc::Src::kYYYY), dxbc::Src::R(value_temp));
++      }
++      a_.OpMov(uses_register_dynamic_addressing ? dxbc::Dest::X(0, i) : dxbc::Dest::R(i),
++               dxbc::Src::R(value_temp));
++    }
++    // Release offset_temp, value_temp and deriv_temp.
++    PopSystemTemp(3);
++  }
++
+   // Write the pixel parameters to the specified interpolator register
+   // (PsParamGen). The negate modified in DXBC flips the sign bit, so it can be
+   // used to write the flags.
+-- 
+2.55.0.windows.5
+

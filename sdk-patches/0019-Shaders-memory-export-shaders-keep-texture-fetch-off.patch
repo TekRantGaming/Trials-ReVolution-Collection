@@ -1,0 +1,65 @@
+From 7739aed072ccd2026b2342c2a86c40967e007cb3 Mon Sep 17 00:00:00 2001
+From: TekRantGaming <craigferels896@gmail.com>
+Date: Fri, 30 Oct 2026 05:58:41 +0000
+Subject: [PATCH 19/20] Shaders: memory export shaders keep texture fetch
+ offsets in guest texels
+
+Under resolution scaling, fetch offsets on resolution scaled textures are
+applied in host texels (draw_resolution_scaled_texture_offsets). Shaders
+that export to memory work per guest pixel, though: one host pixel of each
+guest pixel exports, with the guest pixel's interpolants. Trials Evolution
+compresses its virtual texture pages to DXT5 in such a pixel shader,
+reading each 4x4 block with offsets of 0.5 and 1.5 texels around the block
+center from the page it has just drawn. At 2x every block was made from
+its central 2x2 texels only, so the page cache held nearly flat 4x4
+blocks and the ground looked like a checkerboard of squares above 720p.
+
+Memory export shaders now keep their offsets (and texture weights) in
+guest texels, in the Direct3D 12 and Vulkan shader translators. The
+ground at 4K now has the detail it has at 720p, at the higher resolution.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/graphics/pipeline/shader/dxbc_translator_fetch.cpp  | 6 +++++-
+ src/graphics/pipeline/shader/spirv_translator_fetch.cpp | 6 +++++-
+ 2 files changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/src/graphics/pipeline/shader/dxbc_translator_fetch.cpp b/src/graphics/pipeline/shader/dxbc_translator_fetch.cpp
+index d2c5f80..460d2b9 100644
+--- a/src/graphics/pipeline/shader/dxbc_translator_fetch.cpp
++++ b/src/graphics/pipeline/shader/dxbc_translator_fetch.cpp
+@@ -881,8 +881,12 @@ void DxbcShaderTranslator::ProcessTextureFetchInstruction(
+                 dxbc::Src::R(size_and_is_3d_temp));
+     }
+   }
++  // Shaders that export to memory work per guest pixel (one host pixel of each guest pixel exports, with the guest
++  // pixel's interpolants), so their offsets stay in guest texels. Trials Evolution compresses its virtual texture
++  // pages to DXT5 that way, reading each 4x4 block with offsets of 0.5 and 1.5 texels around its center: in host
++  // texels of the 2x page, every block was made from its central 2x2 texels only and the ground came out blocky.
+   uint32_t revert_resolution_scale_axes =
+-      REXCVAR_GET(draw_resolution_scaled_texture_offsets)
++      REXCVAR_GET(draw_resolution_scaled_texture_offsets) && !current_shader().memexport_eM_written()
+           ? uint32_t(draw_resolution_scale_x_ > 1) | (uint32_t(draw_resolution_scale_y_ > 1) << 1)
+           : 0;
+ 
+diff --git a/src/graphics/pipeline/shader/spirv_translator_fetch.cpp b/src/graphics/pipeline/shader/spirv_translator_fetch.cpp
+index 9ce3bb4..a4b1ccd 100644
+--- a/src/graphics/pipeline/shader/spirv_translator_fetch.cpp
++++ b/src/graphics/pipeline/shader/spirv_translator_fetch.cpp
+@@ -974,8 +974,12 @@ void SpirvShaderTranslator::ProcessTextureFetchInstruction(
+       coordinates[coordinate_component_index] = coordinates_operand;
+     }
+     spv::Id texture_resolution_scaled = spv::NoResult;
++    // Shaders that export to memory work per guest pixel, so their offsets stay in guest texels (see the DXBC
++    // translator: Trials Evolution's virtual texture page compression).
+     uint32_t revert_resolution_scale_axes =
+-        uint32_t(draw_resolution_scale_x_ > 1) | (uint32_t(draw_resolution_scale_y_ > 1) << 1);
++        current_shader().memexport_eM_written()
++            ? 0
++            : uint32_t(draw_resolution_scale_x_ > 1) | (uint32_t(draw_resolution_scale_y_ > 1) << 1);
+     spv::Id const_texture_resolution_scale[] = {spv::NoResult, spv::NoResult};
+     spv::Id const_texture_resolution_scale_reciprocal[] = {spv::NoResult, spv::NoResult};
+     if (revert_resolution_scale_axes) {
+-- 
+2.55.0.windows.5
+
