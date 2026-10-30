@@ -43,6 +43,8 @@ if(WIN32)
                         "LINKER:/MAP")
 endif()
 
+target_compile_definitions(trials_fusion PRIVATE TRIALS_DEFAULT_720P=1)
+
 # Private developer aids (dev/, never in the repo): screenshots and a scripted controller for tests.
 option(TF_DEV_TOOLS "Build the developer aids in dev/" OFF)
 if(TF_DEV_TOOLS)

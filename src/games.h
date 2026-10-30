@@ -14,6 +14,8 @@ namespace trials {
 // launcher downloads: TrialsCollection-vX-windows-x64.zip (its own update), TrialsHD-, TrialsEvolution- and
 // TrialsFusion-vX-windows-x64.zip and SHA256SUMS.txt.
 inline constexpr const char* kCollectionRepo = "TekRantGaming/Trials-ReVolution-Collection";
+// Trials Evolution and Trials Fusion: start at 720p, and the launcher warns about higher resolutions.
+inline constexpr const char* k720pResolution = "1280x720";
 inline constexpr const char* kPackagesTagPrefix = "packages-v";
 
 struct GameInfo {
@@ -62,6 +64,7 @@ std::string GameDir(const GameInfo& game);       // games/<id>: the program file
 std::string GameDataDir(const GameInfo& game);   // games/<id>/game: the files from the player's package
 std::string GameExePath(const GameInfo& game);
 std::string GameSettingsPath(const GameInfo& game);  // games/<id>/<id>.toml, read by the game at start
+bool HasIssuesAbove720p(const GameInfo& game);       // Trials Evolution and Trials Fusion
 std::string SavesDir(const GameInfo& game);      // Documents/<id>
 std::string BackupsDir(const GameInfo& game);    // save-backups/<id>
 std::string CacheDir();                          // cache (art)

@@ -20,6 +20,7 @@ constexpr const char* kSteamPhases[] = {"Getting the artwork", "Waiting for Stea
 }  // namespace
 
 void App::OpenDiscord() { trg::OpenUrl(kDiscordUrl); }
+void App::OpenIssues() { trg::OpenUrl(std::string("https://github.com/") + kCollectionRepo + "/issues"); }
 
 void App::StartSteamCheck() {
   steam_ = std::make_shared<SteamState>();

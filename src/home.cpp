@@ -158,7 +158,10 @@ void DrawGoldTile(App& app, ImVec2 a, ImVec2 b, bool focused) {
 }
 
 void Activate(App& app, int tile) {
-  if (tile < kGameCount) app.OpenHub(tile);
+  if (tile < kGameCount) {
+    app.OpenHub(tile);
+    app.ShowGameNotice(tile);
+  }
   else if (tile == kGoldTile) app.OpenGoldEdition();
   else if (tile == kProjectsTile) app.OpenProjects();
   else if (tile == kSteamTile) app.SteamPressed();

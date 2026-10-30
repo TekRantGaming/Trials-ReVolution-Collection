@@ -87,6 +87,12 @@ void ApplyRenderQuality(rex::ui::Window* window) {
   SetCvarDefault("render_target_path_d3d12", "rov");
 #endif
 
+#if defined(TRIALS_DEFAULT_720P)
+  // Trials Evolution and Trials Fusion start at 720p: they behave abnormally above it (the launcher warns about
+  // higher resolutions). "auto" in the settings file is the screen, as an empty value is for Trials HD.
+  SetCvarDefault("trials_resolution", "1280x720");
+#endif
+
   int chosen_w = 0, chosen_h = 0;
   if (std::sscanf(REXCVAR_GET(trials_resolution).c_str(), "%dx%d", &chosen_w, &chosen_h) == 2 && chosen_w > 0 &&
       chosen_h > 0) {

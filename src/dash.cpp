@@ -21,10 +21,10 @@ bool g_pad = false, g_pad_known = false;
 
 struct Modal {
   enum class Kind { kNone, kConfirm, kKey } kind = Kind::kNone;
-  std::string title, text, yes, no = "Cancel";
-  std::function<void()> on_yes, on_no;
+  std::string title, text, yes, no = "Cancel", third;  // third: optional, left of yes
+  std::function<void()> on_yes, on_no, on_third;
   std::function<bool(ImGuiKey)> on_key;
-  int focus = 1;  // confirm: 0 yes, 1 cancel (the safe one first)
+  int focus = 1;  // confirm: 0 yes, 1 cancel (the safe one first), 2 third
   int frames = 0;
   double since = 0.0;
 };
@@ -199,10 +199,23 @@ void DrawModal() {
   const float y = b.y - 72 * f.s;
   const float cw = PillWidth(g_modal.no), yw = PillWidth(g_modal.yes);
   const ImVec2 cpos(b.x - 32 * f.s - cw * f.s, y), ypos(cpos.x - 14 * f.s - yw * f.s, y);
-  if (g_raw[int(Btn::kLeft)] || g_raw[int(Btn::kRight)]) g_modal.focus ^= 1;
+  const bool has_third = !g_modal.third.empty();
+  const ImVec2 tpos(ypos.x - 14 * f.s - (has_third ? PillWidth(g_modal.third) * f.s : 0), y);
+  // Not on the first frame: the press that opened the modal (a setting changed with left or right) is still down.
+  const bool left = g_modal.frames > 1 && g_raw[int(Btn::kLeft)], right = g_modal.frames > 1 && g_raw[int(Btn::kRight)];
+  if (has_third) {  // left to right: third, yes, no
+    int at = g_modal.focus == 2 ? 0 : g_modal.focus == 0 ? 1 : 2;
+    if (left) at = std::max(0, at - 1);
+    if (right) at = std::min(2, at + 1);
+    g_modal.focus = at == 0 ? 2 : at == 1 ? 0 : 1;
+  } else if (left || right) {
+    g_modal.focus ^= 1;
+  }
   const bool mouse = ImGui::GetIO().MouseDelta.x != 0 || ImGui::GetIO().MouseDelta.y != 0;
   PillRect yes = Pill(ypos, g_modal.yes, g_modal.focus == 0, g_modal.focus == 0);
   PillRect no = Pill(cpos, g_modal.no, g_modal.focus == 1, g_modal.focus == 1);
+  PillRect third{};
+  if (has_third) third = Pill(tpos, g_modal.third, g_modal.focus == 2, g_modal.focus == 2);
   const auto in = [](const PillRect& r) { return ImGui::IsMouseHoveringRect(r.a, r.b); };
   if (mouse && in(yes) && g_modal.focus != 0) {
     g_modal.focus = 0;
@@ -212,20 +225,26 @@ void DrawModal() {
     g_modal.focus = 1;
     trials::sound::Play(trials::sound::Sound::kMove);
   }
-  bool do_yes = false, do_no = false, close = false;
+  if (has_third && mouse && in(third) && g_modal.focus != 2) {
+    g_modal.focus = 2;
+    trials::sound::Play(trials::sound::Sound::kMove);
+  }
+  bool do_yes = false, do_no = false, do_third = false, close = false;
   if (g_modal.frames > 1) {
-    if (g_raw[int(Btn::kA)]) (g_modal.focus == 0 ? do_yes : do_no) = true;
+    if (g_raw[int(Btn::kA)]) (g_modal.focus == 0 ? do_yes : g_modal.focus == 2 ? do_third : do_no) = true;
     if (g_raw[int(Btn::kB)]) close = true;
     if (ImGui::IsMouseClicked(0)) {
-      if (in(yes) || in(no)) trials::sound::Play(trials::sound::Sound::kSelect);
-      if (in(yes)) do_yes = true;
+      const bool on_third = has_third && in(third);
+      if (in(yes) || in(no) || on_third) trials::sound::Play(trials::sound::Sound::kSelect);
+      if (on_third) do_third = true;
+      else if (in(yes)) do_yes = true;
       else if (in(no)) do_no = true;
       else if (!ImGui::IsMouseHoveringRect(a, b)) close = true;
     }
   }
   g_f.dl = saved;
-  if (do_yes || do_no) {
-    auto fn = do_yes ? g_modal.on_yes : g_modal.on_no;
+  if (do_yes || do_no || do_third) {
+    auto fn = do_yes ? g_modal.on_yes : do_third ? g_modal.on_third : g_modal.on_no;
     g_modal = Modal();
     if (fn) fn();
   } else if (close) {
@@ -648,14 +667,23 @@ void DrawToast() {
   dl->AddText(f.regular, 16 * f.s, ImVec2(a.x + pad.x, a.y + pad.y), White(), g_toast.c_str());
 }
 
-void Confirm(std::string title, std::string text, std::string yes_label, std::function<void()> on_yes) {
+void Confirm(std::string title, std::string text, std::string yes_label, std::function<void()> on_yes,
+             std::string no_label) {
   g_modal = Modal();
   g_modal.kind = Modal::Kind::kConfirm;
   g_modal.title = std::move(title);
   g_modal.text = std::move(text);
   g_modal.yes = std::move(yes_label);
   g_modal.on_yes = std::move(on_yes);
+  g_modal.no = std::move(no_label);
   g_modal.since = ImGui::GetTime();
+}
+
+void Notice(std::string title, std::string text, std::string first_label, std::function<void()> on_first,
+            std::string second_label, std::function<void()> on_second, std::string close_label) {
+  Confirm(std::move(title), std::move(text), std::move(second_label), std::move(on_second), std::move(close_label));
+  g_modal.third = std::move(first_label);
+  g_modal.on_third = std::move(on_first);
 }
 
 void Choose(std::string title, std::string text, std::string first_label, std::function<void()> on_first,

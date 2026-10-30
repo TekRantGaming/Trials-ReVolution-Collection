@@ -229,7 +229,7 @@ Each game's **Saves and install** page backs up your saves and restores them, op
 
 | | Xbox 360 | PC |
 | --- | :---: | :---: |
-| Resolution | 1280 x 720 (Evolution and Fusion a little less) | your choice, up to 4K |
+| Resolution | 1280 x 720 (Evolution and Fusion a little less) | your choice, up to 4K (Evolution and Fusion start at 720p and behave abnormally above it) |
 | Frame rate | 60 fps | Trials HD 60, 90, 120 or unlimited; Evolution and Fusion 60 |
 | Upscaling | none | AMD FSR 1 or NVIDIA NIS, to your resolution |
 | Downloadable content | Xbox Live | from your own packages (Fusion packs 4 to 6 not yet) |

@@ -130,6 +130,9 @@ class App {
   const Texture& discord_icon() const { return discord_icon_; }
   const Texture& steam_icon() const { return steam_icon_; }
   void OpenDiscord();
+  void OpenIssues();
+  // The message shown each time the player goes into Trials Evolution or Trials Fusion.
+  void ShowGameNotice(int game);
   void SteamPressed();             // adds the launcher to Steam, or opens Steam when it's there already
   std::string SteamLabel() const;  // what the button says
 
@@ -169,6 +172,7 @@ class App {
   trg::UpdatesState self_updates_;
   SettingsView collection_view_;
   Texture discord_icon_, steam_icon_;
+  bool startup_notice_ = false;  // the early playtesting message, shown on the first frame of every launch
   std::shared_ptr<SteamState> steam_;
   bool self_update_tried_ = false;  // the startup install of the launcher's own update (once)
   // The running game.

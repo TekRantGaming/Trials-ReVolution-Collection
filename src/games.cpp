@@ -2,6 +2,7 @@
 
 #include <cstdlib>
 #include <filesystem>
+#include <string_view>
 
 #include <trg/updater.h>
 
@@ -109,6 +110,11 @@ std::string SavesDir(const GameInfo& game) {
 #else
   return DataHome() + "/" + game.id;  // the SDK's user folder for the game
 #endif
+}
+
+bool HasIssuesAbove720p(const GameInfo& game) {
+  const std::string_view id = game.id;
+  return id == "trials_evolution" || id == "trials_fusion";
 }
 
 GameState DetectState(const GameInfo& game) {

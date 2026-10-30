@@ -106,7 +106,11 @@ void DrawToast();
 
 // ------------------------------------------------------------- modals -----
 // One at a time, drawn over the screen; input goes to it until it closes.
-void Confirm(std::string title, std::string text, std::string yes_label, std::function<void()> on_yes);
+void Confirm(std::string title, std::string text, std::string yes_label, std::function<void()> on_yes,
+             std::string no_label = "Cancel");
+// A message with two links and a button that just closes it (which has the focus).
+void Notice(std::string title, std::string text, std::string first_label, std::function<void()> on_first,
+            std::string second_label, std::function<void()> on_second, std::string close_label);
 // Waits for a key or mouse button (Esc or the controller's B cancels); closes
 // when on_key returns true (false: a key that cannot be bound, keep waiting).
 void CaptureKey(std::string what, std::function<bool(ImGuiKey)> on_key);

@@ -260,8 +260,13 @@ std::vector<Section> GameSections(App& app, int g) {
       const int screen_h = SDL_GetDesktopDisplayMode(0, &dm) == 0 ? dm.h : 1 << 16;
       static const int kSizes[][2] = {{0, 0},       {1280, 720},  {1600, 900},  {1920, 1080},
                                       {2560, 1440}, {3200, 1800}, {3840, 2160}};
+      // Evolution and Fusion start at 720p, so Automatic is stored as "auto" for them (an empty value means the
+      // default); a higher resolution only applies after the warning.
+      const bool warn = HasIssuesAbove720p(Games()[g]);
       int w = 0, h = 0;
-      if (std::sscanf(st.Get("trials_resolution", "").c_str(), "%dx%d", &w, &h) != 2) w = h = 0;
+      if (std::sscanf(st.Get("trials_resolution", warn ? k720pResolution : "").c_str(), "%dx%d", &w, &h) != 2) {
+        w = h = 0;
+      }
       std::vector<std::array<int, 2>> sizes;
       std::vector<std::string> names;
       int cur = 0;
@@ -273,15 +278,27 @@ std::vector<Section> GameSections(App& app, int g) {
                               : "Automatic (" + std::to_string(screen_w) + " \xC3\x97 " + std::to_string(screen_h) +
                                     ")");
       }
-      if (r.ChoiceIndex("Resolution", "The resolution the game draws for. The upscaler scales the picture to it, "
-                        "and in a window the window has this size. Automatic uses your screen.", cur, names, 0)) {
-        const auto& sz = sizes[cur];
-        st.Set("trials_resolution", sz[0] ? std::to_string(sz[0]) + "x" + std::to_string(sz[1]) : std::string());
+      if (r.ChoiceIndex("Resolution", std::string("The resolution the game draws for. The upscaler scales the "
+                        "picture to it, and in a window the window has this size. Automatic uses your screen.") +
+                        (warn ? " This game behaves abnormally above 720p." : ""), cur, names, warn ? 1 : 0)) {
+        const std::array<int, 2> sz = sizes[cur];
         // A size that fills the screen opens as a window with its frame just inside it.
         const bool fits = sz[0] && sz[0] < screen_w && sz[1] < screen_h;
-        st.SetInt("window_width", fits ? int(sz[0] / scale + 0.5) : 0);
-        st.SetInt("window_height", fits ? int(sz[1] / scale + 0.5) : 0);
-        st.Save();
+        trg::SettingsStore* store = &st;
+        const auto apply = [store, sz, fits, scale, warn] {
+          store->Set("trials_resolution", sz[0] ? std::to_string(sz[0]) + "x" + std::to_string(sz[1])
+                                                : std::string(warn ? "auto" : ""));
+          store->SetInt("window_width", fits ? int(sz[0] / scale + 0.5) : 0);
+          store->SetInt("window_height", fits ? int(sz[1] / scale + 0.5) : 0);
+          store->Save();
+        };
+        if (warn && (sz[0] ? sz[1] : screen_h) > 720) {
+          Confirm("Above 720p", std::string(Games()[g].title) + " behaves abnormally above 720p. The project is "
+                  "actively looking for contributors to help resolve the problem.",
+                  "Continue", apply, h == 720 ? "Keep 720p" : "Cancel");
+        } else {
+          apply();
+        }
       }
     }
     r.Choice("Monitor", "Which screen the game opens on.", "monitor", "0",

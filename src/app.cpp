@@ -115,6 +115,22 @@ void App::Start() {
   }
   RefreshStates();
 
+  // Once, for players who come from a version without the 720p default: Evolution and Fusion go back to 720p.
+  if (!launcher_settings_->GetBool("resolution_720p_reset", false)) {
+    for (int i = 0; i < kGameCount; ++i) {
+      if (!HasIssuesAbove720p(Games()[i]) || states_[i] == GameState::kNotDownloaded) continue;
+      trg::SettingsStore& st = *games_[i]->settings;
+      st.Set("trials_resolution", k720pResolution);
+      st.SetInt("window_width", 0);
+      st.SetInt("window_height", 0);
+      st.Save();
+    }
+    launcher_settings_->Set("resolution_720p_reset", "true");
+    launcher_settings_->Save();
+  }
+  startup_notice_ = options_.view == "home" && options_.test_play < 0 && options_.test_download < 0 &&
+                    options_.test_install < 0;
+
   if (!options_.offline) {
     art_->Start();
     // Updates install by themselves ("update them automatically when a new
@@ -200,6 +216,17 @@ void App::OpenHub(int game) {
   RefreshStates();
   FocusHubPlay();
   view_ = View::kHub;
+}
+
+void App::ShowGameNotice(int game) {
+  if (game < 0 || game >= kGameCount || !HasIssuesAbove720p(Games()[game])) return;
+  dash::Confirm("Contributors wanted",
+                "This project is looking for contributors to help resolve ongoing issues. You may experience "
+                "problems playing " + std::string(Games()[game].title) +
+                    " above 720p, so it starts at 720p. You can change the resolution in the settings, but you "
+                    "will be warned again.",
+                "View the project",
+                [] { trg::OpenUrl(std::string("https://github.com/") + kCollectionRepo); }, "OK");
 }
 
 void App::OpenGameSettings(int game, const char* section) {
@@ -514,6 +541,13 @@ bool App::Frame() {
     drawn_view_ = view_;
   }
   dash::BeginFrame(fonts_);
+  if (startup_notice_) {
+    startup_notice_ = false;
+    dash::Notice("Early playtesting",
+                 "This project is in early playtesting, so please expect issues. Log any you find on our GitHub "
+                 "issue tracker, or join our Discord.",
+                 "GitHub issues", [this] { OpenIssues(); }, "Join the Discord", [this] { OpenDiscord(); }, "Continue");
+  }
   switch (view_) {
     case View::kHome: DrawHome(*this); break;
     case View::kHub: DrawHub(*this, current_); break;

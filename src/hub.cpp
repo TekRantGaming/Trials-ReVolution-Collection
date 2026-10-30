@@ -112,7 +112,9 @@ void DrawHub(App& app, int g) {
     return;
   }
   if (Pressed(Btn::kLB) || Pressed(Btn::kRB)) {
-    app.OpenHub((g + (Pressed(Btn::kRB) ? 1 : kGameCount - 1)) % kGameCount);
+    const int next = (g + (Pressed(Btn::kRB) ? 1 : kGameCount - 1)) % kGameCount;
+    app.OpenHub(next);
+    app.ShowGameNotice(next);
     return;
   }
   if (Pressed(Btn::kUp)) hub.row = 0;

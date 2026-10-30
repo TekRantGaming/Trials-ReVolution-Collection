@@ -44,7 +44,7 @@ if(WIN32)
 endif()
 
 # Render targets emulated exactly (games/shared/src/render_quality.cpp).
-target_compile_definitions(trials_evolution PRIVATE TRIALS_EXACT_RENDER_TARGETS=1)
+target_compile_definitions(trials_evolution PRIVATE TRIALS_EXACT_RENDER_TARGETS=1 TRIALS_DEFAULT_720P=1)
 
 # Private developer aids (dev/, never in the repo): screenshots and a scripted controller for tests.
 option(TE_DEV_TOOLS "Build the developer aids in dev/" OFF)
