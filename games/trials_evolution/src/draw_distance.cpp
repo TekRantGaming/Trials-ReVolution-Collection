@@ -40,8 +40,11 @@ REX_HOOK_RAW(sub_8232AC10) {
 // Shadow cascades. sub_8266A050 renders the four PSSM cascades: the near one every frame, the second when the frame
 // counter (+444) is even, the third when it is 1 and the far one when it is 3 (mod 4), unless the int at +0x21554 is
 // set (the game sets it for a full redraw). trials_shadow_every_frame sets it before each call, so all four are
-// redrawn every frame.
-REXCVAR_DEFINE_BOOL(trials_shadow_every_frame, true, "Collection", "Redraw every shadow cascade each frame");
+// redrawn every frame. Off by default (the Xbox 360 schedule): it was added for the bike shadow dropping out, which
+// the fixed 16 bit EDRAM unpack (SDK patch 0011) turned out to fix, and at 4K the extra cascades cost frames (a
+// replayed ride at 2x: 59.8 average and 55 lowest per second with the 360 schedule, 58.9 and 44.2 redrawing every
+// cascade; the bike shadow measures the same either way, 30 Oct 2026).
+REXCVAR_DEFINE_BOOL(trials_shadow_every_frame, false, "Collection", "Redraw every shadow cascade each frame");
 
 REX_EXTERN(__imp__sub_8266A050);
 REX_HOOK_RAW(sub_8266A050) {
