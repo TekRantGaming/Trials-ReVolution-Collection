@@ -275,13 +275,16 @@ See [BUILDING.md](BUILDING.md). The game code is generated from each game's own 
 ## Credits
 
 - **Trials HD**, **Trials Evolution** and **Trials Fusion** by RedLynx, published by Microsoft Studios and Ubisoft.
-- [**ReXGlue SDK**](https://github.com/rexglue/rexglue-sdk), which does the code translation and runs the games, built on the work of [**Xenia**](https://github.com/xenia-project/xenia) and [**XenonRecomp**](https://github.com/hedge-dev/XenonRecomp).
-- [**Trials HD Recompiled**](https://github.com/snufflyyy/trials-hd-recompiled) by snufflyyy (MIT): the first recompilation of Trials HD, its function list, the frame smoothing above 60 FPS and the package reader. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+- [**ReXGlue SDK**](https://github.com/rexglue/rexglue-sdk), which does the code translation and runs the games, built on the work of [**Xenia**](https://github.com/xenia-project/xenia) and [**XenonRecomp**](https://github.com/hedge-dev/XenonRecomp). The 16 bit render target fix is ported from [**Xenia Canary**](https://github.com/xenia-canary/xenia-canary).
+- [**Trials HD Recompiled**](https://github.com/snufflyyy/trials-hd-recompiled) by snufflyyy (MIT): the first recompilation of Trials HD, its function list and GPU defaults, the frame smoothing above 60 FPS and the package reader.
 - [**Dear ImGui**](https://github.com/ocornut/imgui), [**SDL**](https://www.libsdl.org) and [**stb**](https://github.com/nothings/stb) for the launcher.
 - The [**TRG Launcher**](https://github.com/TekRantGaming/trg-launcher) (updater and settings), shared by the TekRantGaming ports.
 - Game artwork in the launcher from [**SteamGridDB**](https://www.steamgriddb.com), downloaded when the launcher runs. The collection's logo and Steam artwork are made from the original *Trials Evolution: Gold Edition* art.
 - The Discord and Steam marks from [**Simple Icons**](https://simpleicons.org) (CC0). Discord and Steam are trademarks of their owners.
 - Upscaling: [**AMD FidelityFX Super Resolution 1**](https://github.com/GPUOpen-Effects/FidelityFX-FSR) and the [**NVIDIA Image Scaling SDK**](https://github.com/NVIDIAGameWorks/NVIDIAImageScaling), both MIT licensed.
+- [**FFmpeg**](https://ffmpeg.org) and [**libmspack**](https://github.com/kyz/libmspack) (LGPL), with {fmt}, spdlog, toml++, SIMD Everywhere, xxHash and the other libraries the games are built with.
+
+Every project above, with its licence, is listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), which also ships in the download.
 
 > [!NOTE]
 > **AI disclosure:** this collection was made almost entirely with Claude Code (Anthropic). The repository owner directed and tested the work; the AI did the analysis, code, tools and documentation.

@@ -67,6 +67,8 @@ foreach ($p in $parts) {
   foreach ($f in $crtFiles) { Copy-Item (Join-Path $crt $f) $stage }
   # Add to Steam's artwork beside the launcher (steam_shortcut.cpp reads it there before the repository's copy).
   if (-not $p.Id) { Copy-Item (Join-Path $root 'docs\steam') (Join-Path $stage 'steam') -Recurse }
+  # The licences of everything the release is built on must ship with it.
+  Copy-Item (Join-Path $root 'THIRD_PARTY_NOTICES.md') $stage
   $zip = Join-Path $tag "$($p.Folder)-v$Version-windows-x64.zip"
   # Each part's own name pattern, as the launcher's updater picks it from the release (install.cpp, app.cpp).
   $pyArgs = @($tool, 'package', $stage, '--version', $Version, '--zip', $zip, '--asset', "$($p.Folder)-*-windows-x64.zip")
