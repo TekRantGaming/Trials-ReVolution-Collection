@@ -12,8 +12,10 @@
 
 // Shadow cascades. The 360 redraws the near PSSM cascade every frame, the second every 2nd and the far two every 4th
 // (Graphic:Advance:Shadow:PSSMInterleavedRendering, byte at 0x82FDC74F). trials_shadow_every_frame redraws all four
-// every frame instead.
-REXCVAR_DEFINE_BOOL(trials_shadow_every_frame, true, "Collection", "Redraw every shadow cascade each frame");
+// every frame instead. Off by default (the Xbox 360 schedule): the shadow faults it was added for were the 16 bit
+// EDRAM unpack (SDK patch 0011), and at 4K the extra cascades cost frames (the second track's race at 2x: 59.9
+// average and 58.9 lowest per second with the 360 schedule, 56 and 45.3 redrawing every cascade, 30 Oct 2026).
+REXCVAR_DEFINE_BOOL(trials_shadow_every_frame, false, "Collection", "Redraw every shadow cascade each frame");
 
 REXCVAR_DEFINE_DOUBLE(trials_object_distance, 2.0, "Collection",
                       "Object draw distance, times the original (1 = Xbox 360)");
