@@ -8,6 +8,12 @@ project(trials_hd LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# The SDK tools/setup_sdk.sh prepares (Linux and Android); pass -DREXSDK_DIR=... to use another checkout.
+if(NOT WIN32 AND NOT REXSDK_DIR AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../../third_party/rexglue-sdk/CMakeLists.txt")
+    get_filename_component(_trials_sdk "${CMAKE_CURRENT_SOURCE_DIR}/../../third_party/rexglue-sdk" ABSOLUTE)
+    set(REXSDK_DIR "${_trials_sdk}" CACHE PATH "Path to rexglue-sdk source tree")
+endif()
+
 include(generated/rexglue.cmake)
 
 # Sources
@@ -35,6 +41,13 @@ else()
 endif()
 
 rexglue_setup_target(trials_hd GPU_PLUGINS xenos)
+
+# Linux: the SDK writes librexruntime into its own folder, and the game looks next to itself.
+if(NOT WIN32 AND TARGET rexruntime)
+    add_custom_command(TARGET trials_hd POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:rexruntime> $<TARGET_FILE_DIR:trials_hd>
+        VERBATIM)
+endif()
 
 if(WIN32)
     # UTF-8 as the program's code page, and a linker map for decoding crash reports.

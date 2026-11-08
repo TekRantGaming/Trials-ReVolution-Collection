@@ -28,7 +28,9 @@
 //                                        console draws it: above 720p it moved those levels by a host pixel, the
 //                                        ground looked its texture pages up from neighbouring entries and came out
 //                                        blocky (30 Oct 2026)
-//   render_target_path_vulkan = fbo      Linux: host render targets (faster on handheld graphics)
+//   render_target_path_vulkan = fsi      Linux: render targets emulated exactly, the Vulkan side of Windows' ROV (the
+//                                        title screen and far shadows need it, render_quality.cpp); Android has no
+//                                        such feature, so host render targets (fbo) there
 //   async_shader_compilation_no_pixel_shader = true
 //                                        depth only and memory export pipelines are built in the background too
 //                                        (on a new shader cache they froze the game up to 250 ms each)
@@ -59,8 +61,10 @@ void ApplyPortDefaults() {
   SetCvarDefault("readback_resolve_max_kb", "256");
   SetCvarDefault("readback_resolve_half_pixel_offset", "true");
   SetCvarDefault("ps_guest_pixel_center_shaders", "F2353E4FEFB912F9");
-#if defined(__linux__)
-  SetCvarDefault("render_target_path_vulkan", "fbo");
+#if defined(__ANDROID__)
+  SetCvarDefault("render_target_path_vulkan", "fbo");  // no phone GPU has fragment shader interlock
+#elif defined(__linux__)
+  SetCvarDefault("render_target_path_vulkan", "fsi");  // render targets emulated exactly, as with ROV on Windows
 #endif
 }
 

@@ -60,6 +60,23 @@ Output: `games/<game>/out/build/<short>-release/<game>.exe`.
 | Trials Evolution | `58410AAD` | 0.0.0.3 |
 | Trials Fusion | `58411401` | 0.0.0.3 |
 
+## Linux and Android
+
+Everything is built from a Linux x86-64 machine, from your own packages. [docs/linux_android.md](docs/linux_android.md)
+says what the port holds and what has been proven.
+
+You need git and podman or docker, 16 GB of memory and 40 GB of disk per game. For Android, also a JDK, the Android
+NDK r29 (`ANDROID_NDK`, default `~/Android/android-ndk-r29`), and the SDK with platform 35 and build-tools 35.0.0
+(`ANDROID_SDK`, default `~/Android/sdk`).
+
+```
+./build-linux.sh --packages <folder with your packages>                   # dist/TrialsCollection-linux-x64
+./build-linux.sh --packages <folder with your packages> --target android  # out/android/<game>/package
+```
+
+`--game trials_hd` builds one game, `--launcher-only` only the launcher, `--check` lists what is missing. For Linux,
+start `dist/TrialsCollection-linux-x64/trials_launcher`. For Android, see [tools/android/README.md](tools/android/README.md).
+
 ## Releases
 
 Set `VERSION` to the release's version (the launcher shows it, and every zip's file list carries it), build each

@@ -8,6 +8,12 @@ project(trials_fusion LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# The SDK tools/setup_sdk.sh prepares (Linux and Android); pass -DREXSDK_DIR=... to use another checkout.
+if(NOT WIN32 AND NOT REXSDK_DIR AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../../third_party/rexglue-sdk/CMakeLists.txt")
+    get_filename_component(_trials_sdk "${CMAKE_CURRENT_SOURCE_DIR}/../../third_party/rexglue-sdk" ABSOLUTE)
+    set(REXSDK_DIR "${_trials_sdk}" CACHE PATH "Path to rexglue-sdk source tree")
+endif()
+
 include(generated/rexglue.cmake)
 
 # Sources
@@ -35,6 +41,33 @@ else()
 endif()
 
 rexglue_setup_target(trials_fusion GPU_PLUGINS xenos)
+
+# Native renderer (docs/native_port.md), as in tools/android/CMakeLists.txt. Needs out/native from tools/native/build_shaders.sh.
+if(NOT WIN32 AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../../out/native/shader_cache.cpp")
+    get_filename_component(_trials_root "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
+    set(_native "${_trials_root}/games/shared/native_gpu")
+    add_subdirectory("${_trials_root}/third_party/plume" plume)
+    target_sources(trials_fusion PRIVATE
+        "${_native}/native_gpu.cpp"
+        "${_native}/live_commands.cpp"
+        "${_native}/renderer.cpp"
+        "${_trials_root}/third_party/smol-v/smolv.cpp"
+        "${_trials_root}/out/native/shader_cache.cpp"
+        "${_trials_root}/out/native/shader_containers.cpp")
+    set_source_files_properties("${_trials_root}/out/native/shader_cache.cpp" PROPERTIES
+        INCLUDE_DIRECTORIES "${_native}")
+    target_compile_definitions(trials_fusion PRIVATE TRIALS_NATIVE_GPU=1)
+    target_include_directories(trials_fusion PRIVATE "${_native}" "${_trials_root}/third_party/plume"
+        "${_trials_root}/third_party/smol-v")
+    target_link_libraries(trials_fusion PRIVATE plume X11)
+endif()
+
+# Linux: the SDK writes librexruntime into its own folder, and the game looks next to itself.
+if(NOT WIN32 AND TARGET rexruntime)
+    add_custom_command(TARGET trials_fusion POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:rexruntime> $<TARGET_FILE_DIR:trials_fusion>
+        VERBATIM)
+endif()
 
 if(WIN32)
     # UTF-8 as the program's code page, and a linker map for decoding crash reports.

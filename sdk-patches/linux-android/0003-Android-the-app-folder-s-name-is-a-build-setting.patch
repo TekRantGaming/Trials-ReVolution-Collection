@@ -1,0 +1,44 @@
+From 0fb914084da7376aab649025cc06d83aea9cac65 Mon Sep 17 00:00:00 2001
+From: Kurtisone <104103601+Kurtisone@users.noreply.github.com>
+Date: Sat, 31 Oct 2026 22:54:03 +0100
+Subject: [PATCH 3/3] Android: the app folder's name is a build setting
+
+---
+ src/ui/windowed_app_main_sdl.cpp | 12 +++++++++---
+ 1 file changed, 9 insertions(+), 3 deletions(-)
+
+diff --git a/src/ui/windowed_app_main_sdl.cpp b/src/ui/windowed_app_main_sdl.cpp
+index 6de4f89..a6672be 100644
+--- a/src/ui/windowed_app_main_sdl.cpp
++++ b/src/ui/windowed_app_main_sdl.cpp
+@@ -334,18 +334,24 @@ void InstallCrashReporter(const char* folder) {
+ 
+ }  // namespace
+ 
+-// The app folder (game/, config, logs, user data): a skate1/ folder at the
++// The folder name below: games built for Android set it with
++// REX_ANDROID_APP_FOLDER.
++#ifndef REX_ANDROID_APP_FOLDER
++#define REX_ANDROID_APP_FOLDER "skate1"
++#endif
++
++// The app folder (game/, config, logs, user data): such a folder at the
+ // root of the internal storage or of a microSD card, readable with the "All
+ // files access" permission and reachable by any file manager or transfer, if
+ // it holds game/default.xex; else the app's own external files folder
+ // (Android/data/<package>/files), which needs no permission.
+ std::string FindAppRoot() {
+-  std::vector<std::string> candidates = {"/storage/emulated/0/skate1"};
++  std::vector<std::string> candidates = {"/storage/emulated/0/" REX_ANDROID_APP_FOLDER};
+   if (DIR* storage = opendir("/storage")) {
+     while (dirent* entry = readdir(storage)) {
+       std::string name = entry->d_name;
+       if (name != "." && name != ".." && name != "emulated" && name != "self") {
+-        candidates.push_back("/storage/" + name + "/skate1");
++        candidates.push_back("/storage/" + name + "/" REX_ANDROID_APP_FOLDER);
+       }
+     }
+     closedir(storage);
+-- 
+2.56.0
+

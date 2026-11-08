@@ -1,0 +1,26 @@
+From: Kurtisone <104103601+Kurtisone@users.noreply.github.com>
+Subject: [PATCH] Threads: join a finished thread once
+
+---
+--- a/src/core/threading_posix.cpp
++++ b/src/core/threading_posix.cpp
+@@ -1149,6 +1149,11 @@
+   static void* ThreadStartRoutine(void* parameter);
+   inline bool signaled() const override { return signaled_; }
+   inline void post_execution() override {
++    // Every satisfied wait gets here, and a thread object can be waited on many times: joining twice is undefined
++    // (glibc lets it pass, bionic aborts on the invalid pthread_t).
++    if (joined_.exchange(true)) {
++      return;
++    }
+     if (thread_) {
+       pthread_join(thread_, nullptr);
+     }
+@@ -1162,6 +1167,7 @@
+ #endif
+   }
+   pthread_t thread_;
++  std::atomic<bool> joined_{false};
+   bool signaled_;
+   int exit_code_;
+   State state_;             // Protected by state_mutex_

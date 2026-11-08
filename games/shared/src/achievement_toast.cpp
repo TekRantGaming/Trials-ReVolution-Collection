@@ -36,7 +36,9 @@
 #include <rex/ui/overlay/achievement_icon_cache.h>
 #include <rex/ui/overlay/achievement_notification.h>
 
+#if defined(_WIN32)
 #pragma comment(lib, "winmm.lib")
+#endif
 
 REXCVAR_DEFINE_BOOL(trials_achievement_toasts, true, "Collection", "Show a notification when an achievement unlocks");
 REXCVAR_DEFINE_BOOL(trials_achievement_sound, true, "Collection", "Play the achievement chime");

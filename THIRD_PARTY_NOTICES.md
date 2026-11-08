@@ -2174,3 +2174,14 @@ necessary.  Here is a sample; alter the names:
 
 That's all there is to it!
 ```
+
+## Linux and Android builds
+
+These builds add, besides the SDK patches in `sdk-patches/linux-android`:
+
+* **Skate1Native** (https://github.com/Kurtisone/Skate1Native): the ARM64, Android and Vulkan changes to the ReXGlue
+  SDK, and the Android activity and build script this port's are based on.
+* **libadrenotools** (https://github.com/bylaws/libadrenotools, BSD 2-Clause): `third_party/libadrenotools`, with its
+  licence.
+* **Trials HD Recompiled** (https://github.com/snufflyyy/trials-hd-recompiled, MIT): the fetch constant word and 8 bit
+  integer fixes, and the recipe for compiling the resolve shaders.

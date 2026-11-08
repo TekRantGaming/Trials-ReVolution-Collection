@@ -89,7 +89,7 @@ const PVOID g_handler = AddVectoredExceptionHandler(1, FloatExceptionHandler);
 
 #endif  // _WIN32
 
-#if defined(__linux__)
+#if defined(__linux__) && defined(__x86_64__)
 
 #include <csignal>
 #include <ucontext.h>
@@ -151,8 +151,9 @@ const bool g_installed = (trials::InstallFpeGuard(), true);
 #else
 
 namespace trials {
-void InstallFpeGuard() {}  // Windows: the vectored handler above is installed at startup.
+// Windows: the vectored handler above is installed at startup. ARM never traps on float exceptions.
+void InstallFpeGuard() {}
 }  // namespace trials
 
-#endif  // __linux__
+#endif  // __linux__ && __x86_64__
 

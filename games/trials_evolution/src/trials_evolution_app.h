@@ -12,6 +12,8 @@
 #include <rex/audio/sdl/sdl_audio_system.h>
 #include <rex/cvar.h>
 #include <rex/rex_app.h>
+
+#include "../../shared/src/android_paths.h"
 #include <rex/runtime.h>
 #include <rex/system/gpu_plugin.h>
 #include <rex/ui/overlay/achievement_notification.h>
@@ -48,7 +50,11 @@ class TrialsEvolutionApp : public rex::ReXApp {
   static std::unique_ptr<rex::ui::WindowedApp> Create(
       rex::ui::WindowedAppContext& ctx) {
     return std::unique_ptr<TrialsEvolutionApp>(new TrialsEvolutionApp(ctx, "trials_evolution",
+#if defined(_WIN32)
         PPCImageConfig));
+#else
+        trials_evolution_PPCImageConfig));  // the Linux and Android SDK prefixes generated names with the project's
+#endif
   }
 
   void OnPreSetup(rex::RuntimeConfig& config) override {
@@ -73,7 +79,10 @@ class TrialsEvolutionApp : public rex::ReXApp {
     return defaults;
   }
 
-#if defined(__linux__)
+#if defined(__ANDROID__)
+  // Android: everything is in the app folder (<storage>/<game>), as tools/android/README.md lays out.
+  void OnConfigurePaths(rex::PathConfig& paths) override { trials::ConfigureAndroidPaths(paths, GetName()); }
+#elif defined(__linux__)
   // On Linux the program sits in the read only AppImage: its settings file (which the launcher writes) and its logs
   // go in the game's own user folder (XDG_DATA_HOME/<game>, where its saves are).
   void OnConfigurePaths(rex::PathConfig& paths) override {

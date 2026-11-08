@@ -1,0 +1,153 @@
+From: Kurtisone <104103601+Kurtisone@users.noreply.github.com>
+Subject: [PATCH] Vulkan: uploads that stay fast on Qualcomm drivers
+
+---
+--- a/src/graphics/vulkan/texture_cache.cpp
++++ b/src/graphics/vulkan/texture_cache.cpp
+@@ -13,6 +13,7 @@
+ #include <array>
+ #include <cstddef>
+ #include <cstring>
++#include <string>
+ #include <string_view>
+ #include <utility>
+ 
+@@ -54,6 +55,9 @@
+                     "reported to regress badly on others; off by default")
+     .lifecycle(rex::cvar::Lifecycle::kHotReload);
+ 
++REXCVAR_DEFINE_BOOL(vulkan_uncompressed_textures, false, "GPU/Vulkan",
++                    "Create textures mutable, which keeps tiled mobile GPUs from compressing them: uploading "
++                    "to compressed images is very slow with some drivers");
+ REXCVAR_DEFINE_BOOL(vulkan_storage_image_texture_loads, false, "GPU/Vulkan",
+                     "Write guest texture data directly from the load shader through a storage "
+                     "image where a variant of the load shader is available, instead of going "
+@@ -267,6 +271,43 @@
+ }
+ )";
+ 
++// Storage-image destination load of untiled unscaled 8bpp textures (the planes of movies), through an R8_UINT view.
++const char kTextureLoad8bpbStorageDestShaderSource[] = R"(#version 450
++layout(local_size_x = 4, local_size_y = 32, local_size_z = 1) in;
++layout(set = 1, binding = 0, std430) readonly buffer XeTextureLoadSource {
++  uvec4 data[];
++} xe_src;
++layout(set = 0, binding = 0, r8ui) uniform writeonly uimage2D xe_dest;
++layout(push_constant, std430) uniform XeTextureLoadConstants {
++  uint info;
++  uint guest_offset;
++  uint guest_pitch_aligned;
++  uint guest_z_stride_block_rows_aligned;
++  uvec3 size_blocks;
++  uint host_offset;
++  uint host_pitch;
++  uint height_texels;
++} xe;
++void main() {
++  const uint blocks_per_thread = BLOCKS_PER_THREAD;
++  uint block_y = gl_GlobalInvocationID.y;
++  if (block_y >= xe.size_blocks.y) {
++    return;
++  }
++  uint row = xe.guest_offset + block_y * xe.guest_pitch_aligned;
++  uint block_x = gl_GlobalInvocationID.x * blocks_per_thread;
++  for (uint i = 0u; i < blocks_per_thread; ++i) {
++    uint x = block_x + i;
++    if (x >= xe.size_blocks.x) {
++      break;
++    }
++    uint address = row + x;
++    uint word = xe_src.data[address >> 4u][(address >> 2u) & 3u];
++    imageStore(xe_dest, ivec2(int(x), int(block_y)), uvec4((word >> ((address & 3u) << 3u)) & 255u, 0u, 0u, 0u));
++  }
++}
++)";
++
+ const char kTextureLoad32bpbScaledTexelBufferShaderSource[] = R"(#version 450
+ layout(local_size_x = 4, local_size_y = 32, local_size_z = 1) in;
+ layout(set = 1, binding = 0) uniform utextureBuffer xe_src;
+@@ -1512,6 +1553,9 @@
+       case VK_FORMAT_B10G11R11_UFLOAT_PACK32:
+         storage_capable = true;
+         break;
++      case VK_FORMAT_R8_UNORM:
++        storage_capable = REXCVAR_GET(vulkan_storage_image_texture_loads);
++        break;
+       default:
+         break;
+     }
+@@ -1522,7 +1566,8 @@
+   image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+   image_create_info.pNext = nullptr;
+   image_create_info.flags = 0;
+-  if (formats[1] != VK_FORMAT_UNDEFINED || storage_capable) {
++  // Qualcomm's driver allocates kernel memory for each copy into a compressed image; a mutable image isn't compressed.
++  if (formats[1] != VK_FORMAT_UNDEFINED || storage_capable || REXCVAR_GET(vulkan_uncompressed_textures)) {
+     image_create_info.flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
+   }
+   if (key.dimension == xenos::DataDimension::kCube) {
+@@ -1555,7 +1600,8 @@
+     view_formats[view_format_count++] = formats[1];
+   }
+   if (storage_capable) {
+-    view_formats[view_format_count++] = VK_FORMAT_R32_UINT;
++    view_formats[view_format_count++] =
++        formats[0] == VK_FORMAT_R8_UNORM ? VK_FORMAT_R8_UINT : VK_FORMAT_R32_UINT;
+   }
+   VkImageFormatListCreateInfo image_format_list_create_info;
+   if (view_format_count > 1 && vulkan_device->extensions().ext_1_2_KHR_image_format_list) {
+@@ -1705,11 +1751,21 @@
+   }
+   load_pipelines_scaled_storage_dest_attempted_[load_shader] = true;
+ 
++  std::string source_8bpb;
+   const char* source = nullptr;
+   switch (load_shader) {
+     case kLoadShaderIndex32bpb:
+       source = kTextureLoad32bpbScaledStorageDestShaderSource;
+       break;
++    case kLoadShaderIndex8bpb:
++      source_8bpb = kTextureLoad8bpbStorageDestShaderSource;
++      {
++        const size_t placeholder = source_8bpb.find("BLOCKS_PER_THREAD");
++        source_8bpb.replace(placeholder, strlen("BLOCKS_PER_THREAD"),
++                            std::to_string(1u << GetLoadShaderInfo(load_shader).guest_x_blocks_per_thread_log2) + "u");
++      }
++      source = source_8bpb.c_str();
++      break;
+     default:
+       return VK_NULL_HANDLE;
+   }
+@@ -1975,7 +2031,7 @@
+   // unpacked textures with 32-bit-class host formats only.
+   VkPipeline pipeline_storage_dest = VK_NULL_HANDLE;
+   VkDescriptorSet descriptor_set_dest_storage = VK_NULL_HANDLE;
+-  if (texture_key.scaled_resolve && REXCVAR_GET(vulkan_storage_image_texture_loads)) {
++  if (REXCVAR_GET(vulkan_storage_image_texture_loads)) {
+     static int storage_dest_fallback_logs_remaining = 8;
+     auto log_storage_fallback = [&](const char* reason) {
+       if (storage_dest_fallback_logs_remaining > 0) {
+@@ -1993,6 +2049,10 @@
+       log_storage_fallback("levels");
+     } else if (array_size != 1) {
+       log_storage_fallback("array");
++    } else if (load_shader == kLoadShaderIndex8bpb &&
++               (texture_key.tiled || texture_key.scaled_resolve ||
++                texture_key.endianness != xenos::Endian::kNone)) {
++      log_storage_fallback("8bpp-tiled-scaled-or-swapped");
+     } else {
+       pipeline_storage_dest = GetLoadPipelineScaledStorageDest(load_shader);
+       if (pipeline_storage_dest != VK_NULL_HANDLE) {
+@@ -2727,7 +2787,11 @@
+   view_create_info.flags = 0;
+   view_create_info.image = image_;
+   view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+-  view_create_info.format = VK_FORMAT_R32_UINT;
++  view_create_info.format =
++      static_cast<const VulkanTextureCache&>(texture_cache()).GetHostFormatPair(key()).format_unsigned.format ==
++              VK_FORMAT_R8_UNORM
++          ? VK_FORMAT_R8_UINT
++          : VK_FORMAT_R32_UINT;
+   view_create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+   view_create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+   view_create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;

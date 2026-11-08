@@ -36,6 +36,8 @@ void ApplyPortDefaults() {
   SetCvarDefault("readback_resolve_scaled_max_kb", "64");
 #if defined(__linux__)
   SetCvarDefault("render_target_path_vulkan", "fbo");
+  // The menus' 8 bit font textures have the integer number format set and expect normalized values.
+  SetCvarDefault("texture_fetch_integer_8bpc", "false");
 #endif
 }
 

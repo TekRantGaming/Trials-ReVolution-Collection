@@ -1,0 +1,15 @@
+From: Kurtisone <104103601+Kurtisone@users.noreply.github.com>
+Subject: [PATCH] rexglue.cmake: keep the underscores of the project name
+
+---
+--- a/src/rexglue/commands/project_scan.cpp
++++ b/src/rexglue/commands/project_scan.cpp
+@@ -54,6 +54,8 @@
+       {"sdk_version", std::string(sdk_version)},
+       {"entrypoint_out_dir", std::string(entrypoint_out_dir)},
+   };
++  // Generated files and the manifest carry the project's name as written, with any underscore.
++  data["names"]["original"] = std::string(project_name);
+   return registry.render("init/rexglue_cmake", data.dump());
+ }
+ 

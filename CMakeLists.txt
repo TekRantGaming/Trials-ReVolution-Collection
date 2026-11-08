@@ -54,7 +54,7 @@ add_executable(trials_launcher WIN32
   src/sounds.cpp
   src/steam_button.cpp
   src/steam_shortcut.cpp
-  src/trials.rc)
+  $<$<BOOL:${WIN32}>:src/trials.rc>)
 target_include_directories(trials_launcher PRIVATE src ${stb_SOURCE_DIR})
 target_link_libraries(trials_launcher PRIVATE trg::launcher_standalone)
 if(MSVC)
@@ -65,3 +65,10 @@ endif()
 # Also the exe's file version (trials.rc).
 target_compile_definitions(trials_launcher PRIVATE TRIALS_VERSION="${PROJECT_VERSION}"
   TRIALS_VERSION_COMMAS=${PROJECT_VERSION_MAJOR},${PROJECT_VERSION_MINOR},${PROJECT_VERSION_PATCH},0)
+
+# Linux and Android builds: extracts a game's package (build-linux.sh, and for copying a game to a device).
+if(NOT WIN32)
+  add_executable(trials_extract tools/trials_extract.cpp src/stfs_package.cpp)
+  target_include_directories(trials_extract PRIVATE src)
+  target_compile_definitions(trials_extract PRIVATE TRIALS_VERSION="${PROJECT_VERSION}")
+endif()

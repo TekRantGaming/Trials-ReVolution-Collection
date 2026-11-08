@@ -1,0 +1,30 @@
+# Settings every Trials game uses on Android, on top of each game's own defaults (port_defaults.cpp).
+#
+# Native 720p: 2x costs about 4x the GPU time on the Vulkan backend.
+draw_resolution_scale_x = 1
+draw_resolution_scale_y = 1
+# Play with the handheld's controller; no keyboard emulation of the pad.
+mnk_mode = false
+# Fill the screen and hide Android's status and navigation bars.
+fullscreen = true
+# FPS counter (top right).
+show_fps_counter = true
+# Tiled GPUs (Adreno): copy guest memory uploads before the render pass instead of ending it for each one.
+vulkan_hoist_shared_memory_uploads = true
+# Resolve 32-bit render targets straight from the render target instead of dumping them to the EDRAM buffer first.
+vulkan_direct_resolve_fast32 = true
+# Batch the GPU work (measured on an Adreno 740 with Skate: 68 ms down to 40-51 ms per frame).
+vulkan_submit_on_primary_buffer_end = false
+# Android reports stereo speakers as a 6-channel device; fold the guest's 5.1 to stereo with the SDK's normalized mix.
+audio_force_stereo = true
+# Render every surface single-sampled. With 4x MSAA Trials Fusion's first track ran the Odin 2 Portal (8 GB) out of memory
+# and Android killed it. Applies at launch.
+gpu_force_msaa_1x = true
+# Qualcomm's driver allocates kernel memory for each copy into a compressed image: 170 ms a frame in Trials Fusion, which
+# reloads its virtual texture table (2048x2048, 8 levels) all the time. Uncompressed textures took it from 5 to 84 FPS.
+vulkan_uncompressed_textures = true
+# The textures reloaded every frame (the front buffer, movie planes) are written without a copy at all.
+vulkan_storage_image_texture_loads = true
+# With the Qualcomm driver these shader modes make gl_FragCoord.xy read as 0: Trials Fusion draws its colour table from the
+# pixel position, the table came out black, and so did every track.
+vulkan_shader_float_controls = false

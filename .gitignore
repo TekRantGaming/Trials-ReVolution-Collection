@@ -24,3 +24,7 @@
 /tools/rexglue/
 /games/*/image.bin
 /games/*/missing_funcs.all.toml
+# Linux and Android: the SDK tools/setup_sdk.sh prepares, build output.
+/third_party/rexglue-sdk/
+/out/
+/build-linux/

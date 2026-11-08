@@ -1,0 +1,228 @@
+--- a/include/rex/graphics/native_guest_renderer.h
++++ b/include/rex/graphics/native_guest_renderer.h
+@@ -41,6 +41,34 @@
+                                            void* user_data);
+ 
+ void SetNativeGuestOutputRenderer(NativeGuestOutputRenderer renderer, void* user_data);
++
++// ---- Native command sink ----------------------------------------------------
++// For titles whose state only exists in the command stream: the command
++// processor hands over every draw, resolve and swap with the register file and
++// the bound shaders.
++struct NativeCommandEvent {
++  enum class Kind : uint32_t { kDraw, kCopy, kSwap } kind = Kind::kDraw;
++  const uint32_t* registers = nullptr;
++  uint32_t primitive = 0;
++  uint32_t count = 0;
++  bool indexed = false;
++  bool indices_32bit = false;
++  uint32_t index_address = 0;
++  uint32_t index_endian = 0;
++  uint32_t index_size = 0;  // bytes
++  const uint32_t* vs_ucode = nullptr;
++  uint32_t vs_dwords = 0;
++  uint64_t vs_hash = 0;
++  const uint32_t* ps_ucode = nullptr;
++  uint32_t ps_dwords = 0;
++  uint64_t ps_hash = 0;
++  uint32_t front_buffer = 0, width = 0, height = 0;  // kSwap
++};
++// Returns true when it has dealt with the event, so the emulated path skips it.
++using NativeCommandSink = bool (*)(const NativeCommandEvent& event, void* user_data);
++void SetNativeCommandSink(NativeCommandSink sink, void* user_data);
++bool HasNativeCommandSink();
++bool SendNativeCommand(const NativeCommandEvent& event);
+ bool TryRenderNativeGuestOutput(const NativeGuestOutputRenderContext& context);
+ // Whether a renderer is registered at all; command processors skip RHI
+ // setup entirely when none is (non-Skate titles / renderer disabled).
+--- a/src/graphics/native_guest_renderer.cpp
++++ b/src/graphics/native_guest_renderer.cpp
+@@ -54,6 +54,8 @@
+ namespace rex::graphics {
+ namespace {
+ 
++std::atomic<NativeCommandSink> g_command_sink{nullptr};
++std::atomic<void*> g_command_sink_user_data{nullptr};
+ std::atomic<NativeGuestOutputRenderer> g_renderer{nullptr};
+ std::atomic<void*> g_renderer_user_data{nullptr};
+ // True while the registered renderer actually replaced the last presented
+@@ -215,6 +217,20 @@
+   }
+ }
+ 
++void SetNativeCommandSink(NativeCommandSink sink, void* user_data) {
++  g_command_sink_user_data.store(user_data);
++  g_command_sink.store(sink);
++  // Memory exports must reach guest memory: the renderer reads textures from there.
++  if (sink) rex::cvar::SetFlagByName("readback_memexport", "true");
++}
++
++bool HasNativeCommandSink() { return g_command_sink.load() != nullptr; }
++
++bool SendNativeCommand(const NativeCommandEvent& event) {
++  NativeCommandSink sink = g_command_sink.load();
++  return sink && sink(event, g_command_sink_user_data.load());
++}
++
+ }  // namespace rex::graphics
+ 
+ namespace rex::graphics::nrhi {
+--- a/src/graphics/plugin_main.cpp
++++ b/src/graphics/plugin_main.cpp
+@@ -43,6 +43,11 @@
+   rex::graphics::SetNativeGuestOutputRenderer(renderer, user_data);
+ }
+ 
++extern "C" REX_GPU_PLUGIN_EXPORT void rex_gpu_set_native_command_sink(
++    rex::graphics::NativeCommandSink sink, void* user_data) {
++  rex::graphics::SetNativeCommandSink(sink, user_data);
++}
++
+ extern "C" REX_GPU_PLUGIN_EXPORT rex::system::IGraphicsSystem* rex_gpu_create(
+     uint32_t abi_version, const rex::system::GpuCreateInfo* info) {
+   if (abi_version != rex::system::kGpuPluginAbiVersion) {
+--- a/src/graphics/command_processor.cpp
++++ b/src/graphics/command_processor.cpp
+@@ -22,6 +22,7 @@
+ #include <rex/perf/counter.h>
+ #include <rex/chrono/clock.h>
+ #include <rex/graphics/command_processor.h>
++#include <rex/graphics/native_guest_renderer.h>
+ #include <rex/graphics/flags.h>
+ #include <rex/graphics/graphics_system.h>
+ #include <rex/graphics/pipeline/texture/info.h>
+@@ -1080,6 +1081,16 @@
+   uint32_t frontbuffer_height = reader->ReadAndSwap<uint32_t>();
+   reader->AdvanceRead((count - 4) * sizeof(uint32_t));
+ 
++  if (HasNativeCommandSink()) {
++    NativeCommandEvent event;
++    event.kind = NativeCommandEvent::Kind::kSwap;
++    event.registers = register_file_->values;
++    event.front_buffer = frontbuffer_ptr;
++    event.width = frontbuffer_width;
++    event.height = frontbuffer_height;
++    SendNativeCommand(event);
++  }
++
+   {
+     PROFILE_SCOPE_COUNTER(kCpuSwapUs);
+     IssueSwap(frontbuffer_ptr, frontbuffer_width, frontbuffer_height);
+@@ -1585,7 +1596,36 @@
+   // we don't support yet.
+   reader->AdvanceRead(count_remaining * sizeof(uint32_t));
+ 
+-  if (draw_succeeded && !REXCVAR_GET(gpu_skip_guest_draws)) {
++  bool skip_guest_draw = REXCVAR_GET(gpu_skip_guest_draws);
++  if (draw_succeeded && HasNativeCommandSink()) {
++    NativeCommandEvent event;
++    event.kind = register_file_->Get<reg::RB_MODECONTROL>().edram_mode == xenos::EdramMode::kCopy
++                     ? NativeCommandEvent::Kind::kCopy
++                     : NativeCommandEvent::Kind::kDraw;
++    event.registers = register_file_->values;
++    event.primitive = uint32_t(vgt_draw_initiator.prim_type);
++    event.count = vgt_draw_initiator.num_indices;
++    event.indexed = is_indexed;
++    if (is_indexed) {
++      event.indices_32bit = index_buffer_info.format == xenos::IndexFormat::kInt32;
++      event.index_address = index_buffer_info.guest_base;
++      event.index_endian = uint32_t(index_buffer_info.endianness);
++      event.index_size = index_buffer_info.length;
++    }
++    if (Shader* shader = active_vertex_shader()) {
++      event.vs_ucode = shader->ucode_dwords();
++      event.vs_dwords = uint32_t(shader->ucode_data().size());
++      event.vs_hash = shader->ucode_data_hash();
++    }
++    if (Shader* shader = active_pixel_shader()) {
++      event.ps_ucode = shader->ucode_dwords();
++      event.ps_dwords = uint32_t(shader->ucode_data().size());
++      event.ps_hash = shader->ucode_data_hash();
++    }
++    skip_guest_draw = SendNativeCommand(event);
++  }
++
++  if (draw_succeeded && !skip_guest_draw) {
+     auto viz_query = register_file_->Get<reg::PA_SC_VIZ_QUERY>();
+     if (!(viz_query.viz_query_ena && viz_query.kill_pix_post_hi_z)) {
+       // TODO(Triang3l): Don't drop the draw call completely if the vertex
+--- a/src/graphics/vulkan/command_processor.cpp
++++ b/src/graphics/vulkan/command_processor.cpp
+@@ -10,6 +10,9 @@
+  */
+ 
+ #include <algorithm>
++#include <cstdio>
++#include <set>
++#include <string>
+ #include <unordered_map>
+ #include <array>
+ #include <atomic>
+@@ -62,6 +65,10 @@
+ #include <rex/ui/vulkan/util.h>
+ 
+ // Legacy backend compatibility aliases for shared readback controls.
++REXCVAR_DEFINE_STRING(gpu_shader_dump_dir, "", "GPU/Vulkan",
++                      "Write each shader's microcode and analysis to this folder as it is first "
++                      "drawn with, for the native renderer's shader build");
++
+ REXCVAR_DEFINE_BOOL(vulkan_readback_resolve, false, "GPU/Vulkan",
+                     "Read render-to-texture results on the CPU")
+     .lifecycle(rex::cvar::Lifecycle::kHotReload);
+@@ -4311,6 +4318,56 @@
+       return true;
+     }
+   }
++  if (!REXCVAR_GET(gpu_shader_dump_dir).empty()) {
++    static std::set<uint64_t> dumped;
++    auto dump = [&](VulkanShader* shader, char type) {
++      if (!shader || !dumped.insert(shader->ucode_data_hash()).second) {
++        return;
++      }
++      pipeline_cache_->AnalyzeShaderUcode(*shader);
++      std::string dir = REXCVAR_GET(gpu_shader_dump_dir);
++      std::string name = fmt::format("{}/{:016X}.{}", dir, shader->ucode_data_hash(), type);
++      if (FILE* f = fopen(name.c_str(), "wb")) {
++        fwrite(shader->ucode_dwords(), 4, shader->ucode_data().size(), f);
++        fclose(f);
++      }
++      std::string meta = fmt::format(
++          "{} {:016X} dwords={} regs={} interp={:X} colors={:X} depth={} kill={} memexport={} "
++          "dyn={} program_cntl={:08X} context_misc={:08X} interpolator_cntl={:08X}",
++          type, shader->ucode_data_hash(), shader->ucode_data().size(),
++          shader->register_static_address_bound(), shader->writes_interpolators(),
++          shader->writes_color_targets(), uint32_t(shader->writes_depth()),
++          uint32_t(shader->kills_pixels()), uint32_t(shader->memexport_eM_written()),
++          uint32_t(shader->uses_register_dynamic_addressing()),
++          regs.values[XE_GPU_REG_SQ_PROGRAM_CNTL], regs.values[XE_GPU_REG_SQ_CONTEXT_MISC],
++          regs.values[XE_GPU_REG_SQ_INTERPOLATOR_CNTL]);
++      for (const auto& binding : shader->vertex_bindings()) {
++        meta += fmt::format(" vb{}:{}", binding.fetch_constant, binding.stride_words);
++        for (const auto& attribute : binding.attributes) {
++          const auto& a = attribute.fetch_instr.attributes;
++          meta += fmt::format(",{}:{}:{}:{}", a.offset, uint32_t(a.data_format),
++                              uint32_t(a.is_signed), attribute.fetch_instr.result.storage_index);
++        }
++      }
++      for (const auto& binding : shader->texture_bindings()) {
++        meta += fmt::format(" tex{}:{}", binding.fetch_constant,
++                            uint32_t(binding.fetch_instr.dimension));
++      }
++      for (uint32_t loop = 0; loop < 32; ++loop) {
++        uint32_t value = regs.values[XE_GPU_REG_SHADER_CONSTANT_LOOP_00 + loop];
++        if (value) {
++          meta += fmt::format(" loop{}={:08X}", loop, value);
++        }
++      }
++      meta += '\n';
++      if (FILE* f = fopen((dir + "/meta.txt").c_str(), "ab")) {
++        fwrite(meta.data(), 1, meta.size(), f);
++        fclose(f);
++      }
++    };
++    dump(vertex_shader, 'v');
++    dump(static_cast<VulkanShader*>(active_pixel_shader()), 'p');
++  }
+   bool memexport_used_pixel = pixel_shader && (pixel_shader->memexport_eM_written() != 0);
+   if (memexport_used_pixel) {
+     if (!device_properties.fragmentStoresAndAtomics) {

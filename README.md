@@ -89,6 +89,11 @@ By recompiling the original games into native PC executables, we aim to provide 
 
 <br>
 
+## Linux and Android
+
+Work in progress on this branch: nothing is released. Trials Fusion runs on Linux and on an Odin 2 Portal, with wrong colours in tracks and about 23 FPS on the Odin; the other two games are untested. See
+[docs/linux_android.md](docs/linux_android.md) for where it stands and [BUILDING.md](BUILDING.md) to build it.
+
 ## Getting started
 
 **You need:** Windows 10 or 11 (64 bit) with a DirectX 12 graphics card, and the Xbox Live Arcade package of each game you want to play, copied from your own console (see [Which packages you need](#which-packages-you-need)).
